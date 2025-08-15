@@ -63,7 +63,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.material3.android)
     implementation(libs.material.icons.extended)
-
+    implementation("com.naver.maps:map-sdk:3.22.1")
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)

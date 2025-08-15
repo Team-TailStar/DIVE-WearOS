@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.common.theme.MyApplicationTheme
 import com.example.myapplication.ui.screen.HomeScreen
+import com.example.myapplication.ui.screen.LocationScreen
 
 @Composable
 fun MainApp() {
@@ -18,6 +19,9 @@ fun MainApp() {
         ) {
             composable("home") {
                 HomeScreen(navController)
+            }
+            composable("location") {
+                LocationScreen(navController)
             }
         }
     }
