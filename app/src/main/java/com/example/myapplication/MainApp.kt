@@ -1,6 +1,5 @@
 package com.example.myapplication
 
-import WeatherRepository
 import WeatherScreen
 import android.net.Uri
 import androidx.compose.runtime.Composable
