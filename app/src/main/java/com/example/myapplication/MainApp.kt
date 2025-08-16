@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import WeatherRepository
+import WeatherScreen
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
@@ -11,6 +13,7 @@ import com.example.myapplication.domain.model.FishingPoint
 import com.example.myapplication.ui.screen.FishingDetailPage
 import com.example.myapplication.ui.screen.HomeScreen
 import com.example.myapplication.ui.screen.LocationScreen
+import com.example.myapplication.ui.screen.WeatherMenuScreen
 
 import com.google.gson.Gson
 
@@ -39,6 +42,11 @@ fun MainApp() {
                     FishingDetailPage(point)
                 }
             }
+
+            composable("weather") {
+                WeatherScreen(navController)
+            }
+            composable("weatherMenu") { WeatherMenuScreen(navController) }
         }
     }
 }
