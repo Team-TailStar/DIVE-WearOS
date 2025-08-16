@@ -14,9 +14,9 @@ import com.example.myapplication.ui.screen.FishingDetailPage
 import com.example.myapplication.ui.screen.HealthScreen
 import com.example.myapplication.ui.screen.HomeScreen
 import com.example.myapplication.ui.screen.LocationScreen
+import com.example.myapplication.ui.screen.TideWatchScreen
 import com.example.myapplication.ui.screen.SeaWeatherScreen
 import com.example.myapplication.ui.screen.WeatherMenuScreen
-
 import com.google.gson.Gson
 
 @Composable
@@ -35,7 +35,6 @@ fun MainApp() {
             composable("location") {
                 LocationScreen(navController)
             }
-
             composable("fishingDetail") { backStackEntry ->
                 val point = navController.previousBackStackEntry
                     ?.savedStateHandle
@@ -43,6 +42,9 @@ fun MainApp() {
                 if (point != null) {
                     FishingDetailPage(point)
                 }
+            }
+            composable("tide") {
+                TideWatchScreen()
             }
 
             composable("weather") {
@@ -52,6 +54,7 @@ fun MainApp() {
             composable("sea_weather") { SeaWeatherScreen(navController) }
             composable("air_quality") { AirQualityScreen() }
             composable("health") { HealthScreen() }
+
         }
     }
 }

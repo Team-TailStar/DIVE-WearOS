@@ -63,11 +63,12 @@ fun HomeScreen(navController: NavController) {
                 Triple(Icons.Filled.LocationOn, Color(0xFF4CAF50)) {
                     navController.navigate("location")
                 },
+
                 Triple(Icons.Filled.WbSunny, Color(0xFFFFC107), {
                     navController.navigate("weather")
                 }),
                 Triple(Icons.Filled.Waves, Color(0xFF2196F3), {
-                    //navController.navigate("sea")
+                    navController.navigate("tide")
                 }),
                 Triple(Icons.Filled.Favorite, Color(0xFFF44336), {
                     navController.navigate("health")
