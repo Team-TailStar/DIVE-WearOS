@@ -64,7 +64,7 @@ fun HomeScreen(navController: NavController) {
                     navController.navigate("location")
                 },
                 Triple(Icons.Filled.WbSunny, Color(0xFFFFC107), {}),
-                Triple(Icons.Filled.Waves, Color(0xFF2196F3), {}),
+                Triple(Icons.Filled.Waves, Color(0xFF2196F3), { navController.navigate("tide")}),
                 Triple(Icons.Filled.Favorite, Color(0xFFF44336), {})
             )
 
