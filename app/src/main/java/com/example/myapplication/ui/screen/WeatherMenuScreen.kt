@@ -39,12 +39,12 @@ fun WeatherMenuScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        MenuButton(icon = Icons.Filled.WaterDrop, text = "바다날씨") {
-            // 바다날씨 화면으로 이동 (추가 필요 시)
+        MenuButton(icon = Icons.Filled.WaterDrop, text = "바다날씨", ) {
+            navController.navigate("sea_weather")
         }
         Spacer(modifier = Modifier.height(16.dp))
         MenuButton(icon = Icons.Filled.Air, text = "대기질") {
-            // 대기질 화면으로 이동 (추가 필요 시)
+            navController.navigate("air_quality")
         }
     }
 }
