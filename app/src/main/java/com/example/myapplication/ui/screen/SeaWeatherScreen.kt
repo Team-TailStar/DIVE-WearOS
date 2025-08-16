@@ -18,11 +18,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.R
+import com.example.myapplication.domain.model.WeatherViewModel
+import androidx.compose.runtime.getValue
 
 @Composable
-fun SeaWeatherScreen(navController: NavController) {
+fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherViewModel = viewModel()) {
+    val weatherState by weatherViewModel.uiState
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -49,7 +54,7 @@ fun SeaWeatherScreen(navController: NavController) {
                 color = Color.Black
             )
             Text(
-                text = "33°C",
+                text = weatherState.obs_wt,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -68,7 +73,7 @@ fun SeaWeatherScreen(navController: NavController) {
                 color = Color.Black
             )
             Text(
-                text = "0.5m  서남·서",
+                text = "${weatherState.waveHt.ifEmpty { "-" }}m  ${weatherState.waveDir.ifEmpty { "-" }}",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,

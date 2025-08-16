@@ -22,11 +22,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.domain.model.WeatherViewModel
+import androidx.compose.runtime.getValue
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WeatherScreen(navController: NavController) {
+fun WeatherScreen(navController: NavController, weatherViewModel: WeatherViewModel = viewModel()) {
+    val uiState by weatherViewModel.uiState
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -41,10 +46,6 @@ fun WeatherScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            val context = LocalContext.current
-            val weatherRepo = remember { WeatherRepository(context) }
-            val weather = remember { weatherRepo.getSampleWeather() }
-
             // 날씨 아이콘
             Icon(
                 imageVector = Icons.Filled.WbSunny,
@@ -57,7 +58,7 @@ fun WeatherScreen(navController: NavController) {
 
             // 상태
             Text(
-                text = weather.condition,
+                text = uiState.sky,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -65,7 +66,7 @@ fun WeatherScreen(navController: NavController) {
 
             // 온도
             Text(
-                text = weather.temp,
+                text = uiState.temp,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
@@ -79,8 +80,8 @@ fun WeatherScreen(navController: NavController) {
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                WeatherInfoItem(Icons.Filled.Air, "풍속", "3m/s")
-                WeatherInfoItem(Icons.Filled.Umbrella, "강수확률", "10%")
+                WeatherInfoItem(Icons.Filled.Air, "풍속", uiState.windspd)
+                WeatherInfoItem(Icons.Filled.Umbrella, "강수확률", uiState.rain)
             }
 
             Spacer(Modifier.height(5.dp))
@@ -92,8 +93,8 @@ fun WeatherScreen(navController: NavController) {
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                WeatherInfoItem(Icons.Filled.Explore, "풍향", "서남서")
-                WeatherInfoItem(Icons.Filled.WaterDrop, "습도", "65%")
+                WeatherInfoItem(Icons.Filled.Explore, "풍향", uiState.winddir)
+                WeatherInfoItem(Icons.Filled.WaterDrop, "습도", uiState.humidity)
             }
         }
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.domain.model.TideViewModel
 
 data class SunMoonEvent(
     val title: String,
@@ -23,19 +24,16 @@ data class SunMoonEvent(
 
 @Composable
 fun TideDetailPage(
-    date: String = "2025.08.15(금)",
-    tideName: String = "4물",
-    sunMoonEvents: List<List<SunMoonEvent>> = listOf(
-        listOf(
-            SunMoonEvent("일출", "05:53", Color(0xFFFFA500)),
-            SunMoonEvent("일몰", "19:30", Color(0xFFFF6B6B))
-        ),
-        listOf(
-            SunMoonEvent("월출", "22:37", Color(0xFFFFC107)),
-            SunMoonEvent("월몰", "12:17", Color(0xFF1E90FF))
-        )
-    )
+    tideViewModel: TideViewModel
 ) {
+    val tideState = tideViewModel.uiState.value
+
+    // 🌞🌙 데이터를 리스트로 변환
+    val events = listOf(
+        SunMoonEvent("일출/일몰", tideState.sun, Color.Yellow),
+        SunMoonEvent("월출/월몰", tideState.moon, Color.Cyan)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -48,17 +46,17 @@ fun TideDetailPage(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 날짜 & 물때 표시
+            // 날짜 & 물때
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = date,
+                        text = tideState.date,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = tideName,
+                        text = tideState.mul,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Cyan
@@ -66,10 +64,10 @@ fun TideDetailPage(
                 }
             }
 
-            // 조석 시간 (그냥 글자 배치)
+            // 조석 시간
             item {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp), // 🔽 간격 줄이기 (기본 8.dp 이상일 가능성 있음)
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -77,35 +75,34 @@ fun TideDetailPage(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("▼", fontSize = 16.sp, color = Color.Cyan)
-                        Text("04:29", fontSize = 16.sp, color = Color.White)
+                        Text(tideState.jowi1, fontSize = 16.sp, color = Color.White)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(0.5f),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("▲", fontSize = 16.sp, color = Color.Red)
-                        Text("09:43", fontSize = 16.sp, color = Color.White)
+                        Text(tideState.jowi2, fontSize = 16.sp, color = Color.White)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(0.5f),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("▼", fontSize = 16.sp, color = Color.Cyan)
-                        Text("16:29", fontSize = 16.sp, color = Color.White)
+                        Text(tideState.jowi3, fontSize = 16.sp, color = Color.White)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(0.5f),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("▲", fontSize = 16.sp, color = Color.Red)
-                        Text("21:43", fontSize = 16.sp, color = Color.White)
+                        Text(tideState.jowi4, fontSize = 16.sp, color = Color.White)
                     }
                 }
             }
 
-            // ✅ 여기 수정됨
-            items(sunMoonEvents.size) { index ->
-                val pair = sunMoonEvents[index]
+            // 🌞🌙 일출/일몰, 월출/월몰 카드
+            item {
                 Card(
                     modifier = Modifier.fillMaxWidth(0.9f),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2C)),
@@ -115,9 +112,10 @@ fun TideDetailPage(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(6.dp), Arrangement.spacedBy(3.dp)
+                            .padding(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        pair.forEach { event ->
+                        events.forEach { event ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -139,9 +137,11 @@ fun TideDetailPage(
                     }
                 }
             }
+
             item {
                 Spacer(modifier = Modifier.height(36.dp))
             }
         }
     }
 }
+

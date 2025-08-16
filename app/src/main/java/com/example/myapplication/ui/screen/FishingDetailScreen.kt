@@ -28,7 +28,7 @@ fun FishingDetailPage(point: FishingPoint) {
     ) {
         // 상단 주소
         Text(
-            text = point.addr,
+            text = point.name,
             fontSize = 12.sp,
             color = Color.Gray
         )
@@ -49,32 +49,9 @@ fun FishingDetailPage(point: FishingPoint) {
         InfoRow("수심", point.dpwt)
         InfoRow("저질", point.material)
         InfoRow("적정 물때", point.tide_time)
+        InfoRow("적정 물때", point.target)
 
         Spacer(Modifier.height(12.dp))
-
-        // 추가 설명 섹션
-        if (point.intro.isNotBlank()) InfoSection("소개", point.intro)
-        if (point.forecast.isNotBlank()) InfoSection("예보", point.forecast)
-        if (point.ebbf.isNotBlank()) InfoSection("조류", point.ebbf)
-        if (point.notice.isNotBlank()) InfoSection("주의사항", point.notice)
-
-        Spacer(Modifier.height(12.dp))
-
-        // 계절별 수온
-        InfoSection("수온(봄)", point.wtemp_sp)
-        InfoSection("수온(여름)", point.wtemp_su)
-        InfoSection("수온(가을)", point.wtemp_fa)
-        InfoSection("수온(겨울)", point.wtemp_wi)
-
-        Spacer(Modifier.height(12.dp))
-
-        // 계절별 어종
-        InfoSection("어종(봄)", point.fish_sp)
-        InfoSection("어종(여름)", point.fish_su)
-        InfoSection("어종(가을)", point.fish_fa)
-        InfoSection("어종(겨울)", point.fish_wi)
-
-        Spacer(Modifier.height(20.dp))
     }
 }
 
