@@ -30,7 +30,7 @@ fun LocationScreen(navController: NavController) {
         if (page == 0) {
             CurrentLocationPage()
         } else {
-            FishingPointPage(points[page - 1], pagerState)
+            FishingPointPage(points[page - 1], navController)
         }
     }
 }

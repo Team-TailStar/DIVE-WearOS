@@ -6,14 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.NavController
 import com.example.myapplication.domain.model.FishingPoint
+import com.google.gson.Gson
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapView
@@ -35,12 +31,8 @@ import com.naver.maps.map.overlay.Marker
 @Composable
 fun FishingPointPage(
     point: FishingPoint,
-    pagerState: PagerState,
-    onPrevClick: () -> Unit = {},
-    onNextClick: () -> Unit = {}
+    navController: NavController,
 ) {
-    val currentPage = pagerState.currentPage
-    val totalPages = pagerState.pageCount
     val mapView = MapView(LocalContext.current)
 
     DisposableEffect(Unit) {
@@ -49,6 +41,7 @@ fun FishingPointPage(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
+        // 네이버 지도
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = {
@@ -71,7 +64,7 @@ fun FishingPointPage(
             contentDescription = "이전",
             tint = Color.Black,
             modifier = Modifier
-                .align(Alignment.CenterStart) // 화면 왼쪽 중앙
+                .align(Alignment.CenterStart)
                 .padding(start = 4.dp)
                 .size(28.dp)
         )
@@ -82,11 +75,12 @@ fun FishingPointPage(
             contentDescription = "다음",
             tint = Color.Black,
             modifier = Modifier
-                .align(Alignment.CenterEnd) // 화면 오른쪽 중앙
+                .align(Alignment.CenterEnd)
                 .padding(end = 4.dp)
                 .size(28.dp)
         )
 
+        // 상단 제목
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -97,18 +91,35 @@ fun FishingPointPage(
             Text("낚시포인트", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
 
-        // 하단 정보
+        // 하단 정보 박스
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 12.dp)
-                .width(200.dp)
+                .width(220.dp)
                 .background(Color(0xCC212121), RoundedCornerShape(50.dp))
-                .padding(10.dp),
+                .padding(10.dp)
+                .clickable {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("fishingPoint", point)
+                    navController.navigate("fishingDetail")
+                }
+            ,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(point.point_nm, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(point.distance, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+            Text(
+                text = point.point_nm,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = point.point_dt ?: "거리 정보 없음",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Cyan
+            )
         }
     }
 }
