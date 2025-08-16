@@ -12,6 +12,7 @@ import com.example.myapplication.common.theme.MyApplicationTheme
 import com.example.myapplication.domain.model.FishingPoint
 import com.example.myapplication.ui.screen.AirQualityScreen
 import com.example.myapplication.ui.screen.FishingDetailPage
+import com.example.myapplication.ui.screen.HealthScreen
 import com.example.myapplication.ui.screen.HomeScreen
 import com.example.myapplication.ui.screen.LocationScreen
 import com.example.myapplication.ui.screen.SeaWeatherScreen
@@ -51,6 +52,7 @@ fun MainApp() {
             composable("weatherMenu") { WeatherMenuScreen(navController) }
             composable("sea_weather") { SeaWeatherScreen(navController) }
             composable("air_quality") { AirQualityScreen() }
+            composable("health") { HealthScreen() }
         }
     }
 }
