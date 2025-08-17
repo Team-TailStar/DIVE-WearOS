@@ -6,7 +6,7 @@ import androidx.compose.runtime.State
 
 class WeatherViewModel : ViewModel() {
     private val _uiState = mutableStateOf( WeatherData(
-        sky = "맑음 ☀️",
+        sky = "맑음",
         windspd = "5 m/s",
         temp = "26 °C",
         humidity = "60%",

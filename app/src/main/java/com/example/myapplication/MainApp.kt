@@ -3,12 +3,14 @@ package com.example.myapplication
 import WeatherScreen
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.myapplication.common.theme.MyApplicationTheme
 import com.example.myapplication.domain.model.FishingPoint
+import com.example.myapplication.domain.model.HealthViewModel
 import com.example.myapplication.domain.model.TideInfoData
 import com.example.myapplication.domain.model.TideViewModel
 import com.example.myapplication.ui.screen.AirQualityScreen
@@ -21,10 +23,12 @@ import com.example.myapplication.ui.screen.SeaWeatherScreen
 import com.example.myapplication.ui.screen.TideDetailPage
 import com.example.myapplication.ui.screen.WeatherMenuScreen
 import com.google.gson.Gson
+import androidx.compose.runtime.getValue
 
 @Composable
-fun MainApp() {
+fun MainApp(vm: HealthViewModel) {
     MyApplicationTheme {
+        val bpm by vm.currentBpm.collectAsState()
         val navController = rememberNavController()
         val gson = Gson()
 
@@ -66,7 +70,7 @@ fun MainApp() {
             composable("weatherMenu") { WeatherMenuScreen(navController) }
             composable("sea_weather") { SeaWeatherScreen(navController) }
             composable("air_quality") { AirQualityScreen() }
-            composable("health") { HealthScreen() }
+            composable("health") { HealthScreen(vm) }
 
         }
     }

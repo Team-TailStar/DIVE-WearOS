@@ -25,8 +25,8 @@ class HeartRateSensorManager(
         sensorManager.unregisterListener(this)
     }
 
-    override fun onSensorChanged(event: android.hardware.SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_HEART_RATE) {
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_HEART_RATE && event.values.isNotEmpty()) {
             val bpm = event.values[0].toInt()
             onHeartRateChanged(bpm)
         }

@@ -12,7 +12,7 @@ interface HealthRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(record: HealthRecord)
 
-    @Query("SELECT * FROM health_record ORDER BY timestamp DESC")
+    @Query("SELECT * FROM health_record ORDER BY timestamp ASC")
     fun getAllRecords(): Flow<List<HealthRecord>>
 
     @Query("DELETE FROM health_record")
