@@ -3,122 +3,107 @@ package com.example.myapplication.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.Description
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.myapplication.domain.model.HealthViewModel
 
 @Composable
-fun HealthScreen() {
-    val scrollState = rememberScrollState()
+fun HealthScreen(viewModel: HealthViewModel = viewModel()) {
+    val records by viewModel.records.collectAsState(initial = emptyList())
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .verticalScroll(scrollState)
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 혈압 섹션
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(Color.DarkGray)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text("혈압", color = Color.White, fontSize = 10.sp)
+        Text("심박수", color = Color.White, fontSize = 18.sp)
+
+        Spacer(Modifier.height(16.dp))
+
+        // 🩺 최신 기록
+        val latestRecord = records.lastOrNull()
+        if (latestRecord != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "심박수",
+                    tint = Color.Red,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("${latestRecord.heartRate} bpm",
+                    color = Color.White, fontSize = 22.sp)
+            }
+        } else {
+            Text("데이터 없음", color = Color.Gray)
         }
 
-        Spacer(Modifier.height(6.dp))
-        Row {
-            Text("수축기", color = Color.Gray, fontSize = 14.sp)
-            Spacer(Modifier.width(16.dp))
-            Text("이완기", color = Color.Gray, fontSize = 14.sp)
+        Spacer(Modifier.height(24.dp))
+
+        // ❤️ 심박수 그래프
+        if (records.isNotEmpty()) {
+            ChartCard(title = "심박수 기록") { chart ->
+                val entries = records.mapIndexed { index, r ->
+                    Entry(index.toFloat(), r.heartRate.toFloat())
+                }
+                val dataSet = LineDataSet(entries, "심박수").apply {
+                    color = android.graphics.Color.CYAN
+                    setCircleColor(android.graphics.Color.WHITE)
+                    lineWidth = 2f
+                    circleRadius = 4f
+                    setDrawValues(false)
+                }
+                chart.data = LineData(dataSet)
+            }
         }
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Spacer(Modifier.width(8.dp))
-            Text("120", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
-            Text("/", color = Color.Gray, fontSize = 24.sp)
-            Spacer(Modifier.width(8.dp))
-            Text("70", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
-
-        }
-
-        Spacer(Modifier.height(10.dp))
-        Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
-        Spacer(Modifier.height(10.dp))
-
-        // 심박수 섹션
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(Color.DarkGray)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text("심박수", color = Color.White, fontSize = 10.sp)
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = "심박수",
-                tint = Color.Red,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("120 bpm", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        }
-
-        // ---------------------------
-        // 2️⃣ 건강 기록 (그래프 영역)
-        // ---------------------------
-        Spacer(Modifier.height(40.dp))
-
-        Text(
-            text = "내 건강 기록",
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        // 그래프 박스 (임시 Placeholder)
-        Box(
-            modifier = Modifier
-                .width(170.dp)
-                .height(120.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFF2A2A2A)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("📊 그래프 표시 영역", color = Color.White, fontSize = 14.sp)
-        }
-
-        Spacer(Modifier.height(30.dp))
     }
+}
+
+@Composable
+fun ChartCard(title: String, updateChart: (LineChart) -> Unit) {
+    AndroidView(
+        factory = { context ->
+            LineChart(context).apply {
+                description = Description().apply { text = title }
+                setTouchEnabled(true)
+                setPinchZoom(true)
+                axisLeft.textColor = android.graphics.Color.WHITE
+                axisRight.isEnabled = false
+                xAxis.textColor = android.graphics.Color.WHITE
+                legend.textColor = android.graphics.Color.WHITE
+                setNoDataText("데이터 없음")
+                setNoDataTextColor(android.graphics.Color.LTGRAY)
+            }
+        },
+        update = { chart ->
+            chart.clear()
+            updateChart(chart)
+            chart.invalidate()
+        },
+        modifier = Modifier
+            .height(200.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+    )
 }

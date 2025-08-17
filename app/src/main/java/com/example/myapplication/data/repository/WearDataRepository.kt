@@ -76,19 +76,21 @@ class WearDataRepository(
                 // 조석 수신
                 "/tide_info" -> {
                     val dataMap = DataMapItem.fromDataItem(dataItem).dataMap
-                    val tideData = TideInfoData(
-                        date = dataMap.getString("pThisDate") ?: "",
-                        name = dataMap.getString("pName") ?: "",
-                        mul = dataMap.getString("pMul") ?: "",
-                        sun = dataMap.getString("pSun") ?: "",
-                        moon = dataMap.getString("pMoon") ?: "",
-                        jowi1 = dataMap.getString("jowi1") ?: "",
-                        jowi2 = dataMap.getString("jowi2") ?: "",
-                        jowi3 = dataMap.getString("jowi3") ?: "",
-                        jowi4 = dataMap.getString("jowi4") ?: ""
-                    )
+                    val tideList = dataMap.getDataMapArrayList("tideList")?.map { item ->
+                        TideInfoData(
+                            date = dataMap.getString("pThisDate") ?: "",
+                            name = dataMap.getString("pName") ?: "",
+                            mul = dataMap.getString("pMul") ?: "",
+                            sun = dataMap.getString("pSun") ?: "",
+                            moon = dataMap.getString("pMoon") ?: "",
+                            jowi1 = dataMap.getString("jowi1") ?: "",
+                            jowi2 = dataMap.getString("jowi2") ?: "",
+                            jowi3 = dataMap.getString("jowi3") ?: "",
+                            jowi4 = dataMap.getString("jowi4") ?: ""
+                        )
+                    } ?: emptyList()
 
-                    tideViewModel.updateTide(tideData)
+                    tideViewModel.updateTide(tideList)
                 }
             }
         }
