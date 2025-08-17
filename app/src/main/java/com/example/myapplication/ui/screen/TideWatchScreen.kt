@@ -1,4 +1,3 @@
-// ui/screen/TideWatchScreen.kt
 package com.example.myapplication.ui.screen
 
 // ── Compose / Wear / Foundation
@@ -13,8 +12,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -22,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.wear.compose.material.*
@@ -30,7 +28,11 @@ import androidx.wear.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavController
+import com.example.myapplication.domain.model.TideInfoData
+import com.example.myapplication.domain.model.TideViewModel
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -38,6 +40,21 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.Immutable
+
+import java.time.format.DateTimeFormatter
+
+fun TideInfoData.toCallouts(): List<Pair<LocalTime, Color>> {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    return listOfNotNull(
+        jowi1.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Blue },
+        jowi2.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Red },
+        jowi3.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Blue },
+        jowi4.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Red },
+    )
+}
 
 /* ---------- 데이터 ---------- */
 
@@ -57,16 +74,44 @@ data class TideSegment(
     val color: Color
 )
 
+// TideInfoData → TideMarker 변환
+fun TideInfoData.toMarkers(): List<TideMarker> {
+    val list = listOf(jowi1, jowi2, jowi3, jowi4).filter { it.isNotBlank() }
+
+    return list.mapNotNull { raw ->
+        // 예: "02:25 (33) ▼-1"
+        val parts = raw.split(" ")
+        val timeStr = parts.getOrNull(0) ?: return@mapNotNull null
+        val typeStr = parts.getOrNull(2) ?: ""
+
+        val time = try { LocalTime.parse(timeStr) } catch (e: Exception) { null }
+        time?.let {
+            TideMarker(
+                time = it,
+                type = when {
+                    typeStr.startsWith("▲") -> TideType.HIGH
+                    typeStr.startsWith("▼") -> TideType.LOW
+                    else -> TideType.FLOW
+                },
+                color = when {
+                    typeStr.startsWith("▲") -> Color(0xFF1E88E5) // 파랑 (만조)
+                    typeStr.startsWith("▼") -> Color(0xFFE53935) // 빨강 (간조)
+                    else -> Color.Gray
+                }
+            )
+        }
+    }
+}
+
 /* ---------- 화면 루트 ---------- */
 @Composable
 fun TideWatchScreen(
     navController: NavController? = null,
-    date: LocalDate = LocalDate.now(),
-    markers: List<TideMarker> = demoMarkers(),
-    segments: List<TideSegment> = demoSegments(),
+    tideViewModel: TideViewModel = viewModel()
 ) {
-    var currentDate by remember { mutableStateOf(date) }
+    val tideState = tideViewModel.uiState.value
 
+    var currentDate by remember { mutableStateOf(LocalDate.now()) }
     var centerTime by remember {
         mutableStateOf(
             ZonedDateTime.now(ZoneId.of("Asia/Seoul"))
@@ -76,13 +121,34 @@ fun TideWatchScreen(
         )
     }
 
-    // 오버레이(설명) 표시 상태
     var showLegend by remember { mutableStateOf(false) }
 
+    // ⏱️ 시계 현재시간 계속 업데이트
     LaunchedEffect(Unit) {
         while (true) {
             centerTime = LocalTime.now()
             delay(1000L)
+        }
+    }
+
+    // ⏮️ tideList에 들어있는 날짜 리스트
+    val availableDates = tideState.tideList.mapNotNull { runCatching { LocalDate.parse(it.date) }.getOrNull() }
+
+    // 📅 현재 날짜에 맞는 데이터 찾기
+    val today = tideState.tideList.find { it.date == currentDate.toString() }
+
+    // 변환된 데이터
+    val markers = today?.toMarkers() ?: emptyList()
+    val segments = emptyList<TideSegment>()
+
+    val dragModifier = Modifier.pointerInput(today) {
+        detectVerticalDragGestures { _, dragAmount ->
+            if (dragAmount > 50 && today != null) {
+                navController?.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("selectedTide", today)
+                navController?.navigate("tideDetail")
+            }
         }
     }
 
@@ -94,16 +160,19 @@ fun TideWatchScreen(
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                // .onRotaryScrollEvent { true } // 필요 시 재활성화
+                    .then(dragModifier)
             ) {
-                val minSide = if (maxWidth < maxHeight) maxWidth else maxHeight
-                val dial = minSide * 0.54f
-                val ringRadius = dial / 2
-                val outerLabelRadius = ringRadius + 8.dp
+                val density = LocalDensity.current
+                val minSidePx = with(density) {
+                    if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx()
+                }
+                val dialDp = with(density) { (minSidePx * 0.54f).toDp() }
+                val ringRadiusDp = dialDp / 2
+                val outerLabelRadius = ringRadiusDp + 8.dp
 
                 Box(Modifier.fillMaxSize()) {
 
-                    // 좌/우 화살표(날짜 이동)
+                    // ◀️ 좌 화살표 (이전 날짜)
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                         contentDescription = "prev day",
@@ -112,8 +181,14 @@ fun TideWatchScreen(
                             .align(Alignment.CenterStart)
                             .padding(start = 8.dp)
                             .size(18.dp)
-                            .clickable { currentDate = currentDate.minusDays(1) }
+                            .clickable {
+                                val prev = currentDate.minusDays(1)
+                                if (availableDates.contains(prev)) {
+                                    currentDate = prev
+                                }
+                            }
                     )
+                    // ▶️ 우 화살표 (다음 날짜)
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "next day",
@@ -122,12 +197,35 @@ fun TideWatchScreen(
                             .align(Alignment.CenterEnd)
                             .padding(end = 8.dp)
                             .size(18.dp)
-                            .clickable { currentDate = currentDate.plusDays(1) }
+                            .clickable {
+                                val next = currentDate.plusDays(1)
+                                if (availableDates.contains(next)) {
+                                    currentDate = next
+                                }
+                            }
+                    )
+                    // ⬇️ 아래 화살표 (상세페이지 이동)
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = "detail page",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                            .size(22.dp)
+                            .clickable {
+                                today?.let {
+                                    navController?.currentBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("selectedTide", it)
+                                    navController?.navigate("tideDetail")
+                                }
+                            }
                     )
 
                     // 다이얼
                     TideDial(
-                        diameter = dial,
+                        diameter = dialDp,
                         centerTime = centerTime,
                         date = currentDate,
                         segments = segments,
@@ -135,16 +233,16 @@ fun TideWatchScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
 
-                    // (선택) 바깥 라벨 - 필요 없으면 주석처리
+                    // 바깥 라벨
                     SideCallouts(
-                        items = demoCallouts(),
+                        items = today?.toCallouts() ?: emptyList(),
                         radius = outerLabelRadius,
                         modifier = Modifier.align(Alignment.Center),
                         labelPadDp = 4.dp,
                         nudgeDp = 2.dp
                     )
 
-                    // 맨 위 중앙의 느낌표 아이콘 (라벨 설명 오버레이)
+                    // 맨 위 중앙 느낌표
                     InfoCircle(
                         onClick = { showLegend = true },
                         modifier = Modifier
@@ -152,7 +250,7 @@ fun TideWatchScreen(
                             .padding(top = 8.dp)
                     )
 
-                    // 오버레이(설명창)
+                    // 오버레이 (설명창)
                     if (showLegend) {
                         LegendOverlay(
                             onDismiss = { showLegend = false },
@@ -171,7 +269,6 @@ fun TideWatchScreen(
 }
 
 /* ---------- 다이얼 ---------- */
-
 @Composable
 private fun TideDial(
     diameter: Dp,
@@ -276,34 +373,7 @@ private fun SideCallouts(
     val nudgePx = with(density) { nudgeDp.toPx() }
 
     Box(modifier = modifier.size(rLabel * 2).padding(8.dp)) {
-        items.forEachIndexed { index, (time, color) ->
-            val a = timeToAngleRad(time)
-            val cosA = cos(a)
-            val sinA = sin(a)
-            val x = (rLabel.value * cosA).dp
-            val y = (rLabel.value * sinA).dp
-            val prefix = if (index % 2 == 0) "▲" else "▼"
-
-            Box(
-                modifier = Modifier
-                    .offset(x, y)
-                    .graphicsLayer {
-                        translationX += nudgePx * cosA
-                        translationY += nudgePx * sinA
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "$prefix ${time.toString().substring(0, 5)}",
-                    color = color,
-                    fontSize = 6.sp,
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.caption2,
-                    fontWeight = FontWeight.Light,
-                    maxLines = 1
-                )
-            }
-        }
+        items.forEachIndexed { index, (time, color) -> }
     }
 }
 
@@ -344,10 +414,10 @@ private fun LegendOverlay(
         Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.6f))
-            .clickable { onDismiss() } // 바깥 탭으로 닫기
+            .clickable { onDismiss() }
     ) {
         Card(
-            onClick = {}, // 카드 탭은 무시
+            onClick = {},
             backgroundPainter = CardDefaults.cardBackgroundPainter(
                 startBackgroundColor = Color(0xFF2B2B2B),
                 endBackgroundColor = Color(0xFF2B2B2B)
@@ -367,7 +437,6 @@ private fun LegendOverlay(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(6.dp))
-
                 items.forEach { itx ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -394,7 +463,6 @@ private fun LegendOverlay(
                         }
                     }
                 }
-
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = onDismiss,
@@ -425,30 +493,3 @@ private fun sweepDegrees(start: LocalTime, end: LocalTime): Float {
     val delta = if (e >= s) e - s else 86400 - s + e
     return delta / 86400f * 360f
 }
-
-/* ---------- 데모 데이터 ---------- */
-
-private fun demoMarkers() = listOf(
-    TideMarker(LocalTime.of(1, 40), TideType.HIGH, Color(0xFF1E88E5)),
-    TideMarker(LocalTime.of(7, 9),  TideType.LOW,  Color(0xFFE53935)),
-    TideMarker(LocalTime.of(14, 0), TideType.HIGH, Color(0xFF1E88E5)),
-    TideMarker(LocalTime.of(19, 30),TideType.LOW,  Color(0xFFE53935)),
-)
-
-private fun demoSegments() = listOf(
-    TideSegment(LocalTime.of(0, 50),  LocalTime.of(2, 10), Color(0xFF4FC3F7)),
-    TideSegment(LocalTime.of(13, 30), LocalTime.of(14, 40), Color(0xFF4FC3F7)),
-    TideSegment(LocalTime.of(6, 30),  LocalTime.of(7, 30), Color(0xFFEF5350)),
-    TideSegment(LocalTime.of(18, 50), LocalTime.of(19, 40), Color(0xFFEF5350)),
-)
-
-private fun demoCallouts() = listOf(
-    LocalTime.of(1, 40) to Color(0xFF1E88E5),
-    LocalTime.of(7,  9) to Color(0xFFE53935),
-    LocalTime.of(14, 0) to Color(0xFF1E88E5),
-    LocalTime.of(19, 30) to Color(0xFFE53935),
-    LocalTime.of(5, 51) to Color(0xFFB0BEC5),
-    LocalTime.of(19, 0) to Color(0xFFB0BEC5),
-    LocalTime.of(7, 32) to Color(0xFF9FA8DA),
-    LocalTime.of(19, 59) to Color(0xFF9FA8DA),
-)
