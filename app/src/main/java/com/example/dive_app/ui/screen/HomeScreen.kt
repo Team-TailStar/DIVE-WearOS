@@ -15,17 +15,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.wear.compose.foundation.AnchorType
-import androidx.wear.compose.foundation.CurvedLayout
-import androidx.wear.compose.foundation.curvedComposable
-import androidx.wear.compose.foundation.curvedRow
 import androidx.wear.compose.material.Text
-import com.example.myapplication.ui.component.CircleIconButton
+import com.example.dive_app.data.repository.WearDataRepository
+import com.example.dive_app.ui.component.CircleIconButton
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, repo: WearDataRepository) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -65,9 +62,11 @@ fun HomeScreen(navController: NavController) {
                 },
 
                 Triple(Icons.Filled.WbSunny, Color(0xFFFFC107), {
+                    repo.requestWeather()
                     navController.navigate("weather")
                 }),
                 Triple(Icons.Filled.Waves, Color(0xFF2196F3), {
+                    repo.requestTide()
                     navController.navigate("tide")
                 }),
                 Triple(Icons.Filled.Favorite, Color(0xFFF44336), {

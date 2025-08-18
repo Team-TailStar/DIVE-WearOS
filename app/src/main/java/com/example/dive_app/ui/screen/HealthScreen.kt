@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.data.Entry

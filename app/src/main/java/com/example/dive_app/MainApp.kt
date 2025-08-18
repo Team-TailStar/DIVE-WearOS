@@ -1,34 +1,40 @@
 package com.example.dive_app
 
 import WeatherScreen
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.myapplication.common.theme.MyApplicationTheme
-import com.example.myapplication.domain.model.FishingPoint
-import com.example.myapplication.domain.model.HealthViewModel
-import com.example.myapplication.domain.model.TideInfoData
-import com.example.myapplication.domain.model.TideViewModel
-import com.example.myapplication.ui.screen.AirQualityScreen
-import com.example.myapplication.ui.screen.FishingDetailPage
-import com.example.myapplication.ui.screen.HealthScreen
-import com.example.myapplication.ui.screen.HomeScreen
-import com.example.myapplication.ui.screen.LocationScreen
-import com.example.myapplication.ui.screen.TideWatchScreen
-import com.example.myapplication.ui.screen.SeaWeatherScreen
-import com.example.myapplication.ui.screen.TideDetailPage
-import com.example.myapplication.ui.screen.WeatherMenuScreen
+import com.example.dive_app.common.theme.MyApplicationTheme
+import com.example.dive_app.domain.model.FishingPoint
+import com.example.dive_app.domain.model.HealthViewModel
+import com.example.dive_app.domain.model.TideInfoData
+import com.example.dive_app.ui.screen.AirQualityScreen
+import com.example.dive_app.ui.screen.FishingDetailPage
+import com.example.dive_app.ui.screen.HealthScreen
+import com.example.dive_app.ui.screen.HomeScreen
+import com.example.dive_app.ui.screen.LocationScreen
+import com.example.dive_app.ui.screen.TideWatchScreen
+import com.example.dive_app.ui.screen.SeaWeatherScreen
+import com.example.dive_app.ui.screen.TideDetailPage
+import com.example.dive_app.ui.screen.WeatherMenuScreen
 import com.google.gson.Gson
 import androidx.compose.runtime.getValue
+import com.example.dive_app.domain.model.TideViewModel
+import com.example.dive_app.domain.model.WeatherViewModel
+import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 
 @Composable
-fun MainApp(vm: HealthViewModel) {
+fun MainApp(
+    healthVM: HealthViewModel,
+    fishingVM: FishingPointViewModel,
+    weatherVM: WeatherViewModel,
+    tideVM: TideViewModel,
+    repo: com.example.dive_app.data.repository.WearDataRepository
+) {
     MyApplicationTheme {
-        val bpm by vm.currentBpm.collectAsState()
+        val bpm by healthVM.currentBpm.collectAsState()
         val navController = rememberNavController()
         val gson = Gson()
 
@@ -37,12 +43,12 @@ fun MainApp(vm: HealthViewModel) {
             startDestination = "home"
         ) {
             composable("home") {
-                HomeScreen(navController)
+                HomeScreen(navController, repo)
             }
             composable("location") {
                 LocationScreen(navController)
             }
-            composable("fishingDetail") { backStackEntry ->
+            composable("fishingDetail") {
                 val point = navController.previousBackStackEntry
                     ?.savedStateHandle
                     ?.get<FishingPoint>("fishingPoint")
@@ -51,10 +57,9 @@ fun MainApp(vm: HealthViewModel) {
                 }
             }
             composable("tide") {
-                TideWatchScreen(navController = navController)
+                TideWatchScreen(navController = navController, tideVM = tideVM, repo = repo)
             }
-
-            composable("tideDetail") { backStackEntry ->
+            composable("tideDetail") {
                 val tide = navController.previousBackStackEntry
                     ?.savedStateHandle
                     ?.get<TideInfoData>("selectedTide")
@@ -63,15 +68,13 @@ fun MainApp(vm: HealthViewModel) {
                     TideDetailPage(tide, navController)
                 }
             }
-
             composable("weather") {
-                WeatherScreen(navController)
+                WeatherScreen(navController = navController, weatherVM, repo)
             }
             composable("weatherMenu") { WeatherMenuScreen(navController) }
-            composable("sea_weather") { SeaWeatherScreen(navController) }
+            composable("sea_weather") { SeaWeatherScreen(navController, weatherVM) }
             composable("air_quality") { AirQualityScreen() }
-            composable("health") { HealthScreen(vm) }
-
+            composable("health") { HealthScreen(healthVM) }
         }
     }
 }

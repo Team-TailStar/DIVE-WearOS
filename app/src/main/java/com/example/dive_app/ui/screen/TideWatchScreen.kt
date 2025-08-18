@@ -8,12 +8,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.rotary.onRotaryScrollEvent
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +38,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.Immutable
+import com.example.dive_app.data.repository.WearDataRepository
 
 import java.time.format.DateTimeFormatter
 
@@ -106,10 +103,11 @@ fun TideInfoData.toMarkers(): List<TideMarker> {
 /* ---------- 화면 루트 ---------- */
 @Composable
 fun TideWatchScreen(
-    navController: NavController? = null,
-    tideViewModel: TideViewModel = viewModel()
+    navController: NavController,
+    tideVM: TideViewModel,
+    repo: WearDataRepository
 ) {
-    val tideState = tideViewModel.uiState.value
+    val tideState = tideVM.uiState.value
 
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
     var centerTime by remember {
@@ -120,8 +118,11 @@ fun TideWatchScreen(
                 .withNano(0)
         )
     }
-
     var showLegend by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        repo.requestTide()
+    }
 
     // ⏱️ 시계 현재시간 계속 업데이트
     LaunchedEffect(Unit) {
