@@ -11,11 +11,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,8 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.example.myapplication.domain.model.FishingPoint
-import com.example.myapplication.ui.viewmodel.FishingPointViewModel
+import com.example.dive_app.domain.model.FishingPoint
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapView
@@ -53,9 +48,14 @@ fun FishingPointPage(
                 mapView.apply {
                     getMapAsync { naverMap ->
                         naverMap.uiSettings.isZoomControlEnabled = false
-                        naverMap.moveCamera(CameraUpdate.scrollTo(LatLng(point.lat, point.lon)))
+                        naverMap.moveCamera(
+                            CameraUpdate.scrollTo(
+                                LatLng(point.lat ?: 0.0, point.lon ?: 0.0) // null이면 0.0으로 처리
+                            )
+                        )
+
                         Marker().apply {
-                            position = LatLng(point.lat, point.lon)
+                            position = LatLng(point.lat ?: 0.0, point.lon ?: 0.0) // 안전하게 처리
                             map = naverMap
                         }
                     }
