@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,10 +24,16 @@ import androidx.navigation.NavController
 import com.example.dive_app.R
 import com.example.dive_app.domain.model.WeatherViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.example.dive_app.MainActivity
 
 @Composable
-fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherViewModel = viewModel()) {
-    val weatherState by weatherViewModel.uiState
+fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherViewModel) {
+    val context = LocalContext.current
+    val uiState by weatherViewModel.uiState
+    LaunchedEffect(Unit) {
+        (context as MainActivity).replyToPhone("/request_weather", "request_weather")
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -54,7 +61,7 @@ fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherVie
                 color = Color.Black
             )
             Text(
-                text = weatherState.obs_wt,
+                text = uiState.obs_wt,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -73,7 +80,7 @@ fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherVie
                 color = Color.Black
             )
             Text(
-                text = "${weatherState.waveHt.ifEmpty { "-" }}m  ${weatherState.waveDir.ifEmpty { "-" }}",
+                text = "${uiState.waveHt.ifEmpty { "-" }}m  ${uiState.waveDir.ifEmpty { "-" }}",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,

@@ -1,44 +1,31 @@
 package com.example.dive_app.domain.model
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.State
 
 class WeatherViewModel : ViewModel() {
-    private val _uiState = mutableStateOf( WeatherData(
-        sky = "맑음",
-        windspd = "5 m/s",
-        temp = "26 °C",
-        humidity = "60%",
-        rain = "0 mm",
-        winddir = "북동풍",
-        waveHt = "0.5 m",
-        waveDir = "동쪽",
-        obs_wt = "24 °C"
-    ))
+    private val _uiState = mutableStateOf(WeatherData())
     val uiState: State<WeatherData> = _uiState
 
     fun updateWeather(
-        sky: String,
-        windspd: String,
-        temp: String,
-        humidity: String,
-        rain: String,
-        winddir: String,
-        waveHt: String,
-        waveDir: String,
-        obs_wt: String
+        weatherData: WeatherData
     ) {
-        _uiState.value = WeatherData(
-            sky = sky,
-            windspd = windspd,
-            temp = temp,
-            humidity = humidity,
-            rain = rain,
-            winddir = winddir,
-            waveHt = waveHt,
-            waveDir = waveDir,
-            obs_wt = obs_wt
+        val newData = WeatherData(
+            sky = weatherData.sky,
+            windspd = weatherData.windspd,
+            temp = weatherData.temp,
+            humidity = weatherData.humidity,
+            rain = weatherData.rain,
+            winddir = weatherData.winddir,
+            waveHt = weatherData.waveHt,
+            waveDir = weatherData.waveDir,
+            obs_wt = weatherData.obs_wt
         )
+
+        // 📌 로그 출력 (값 확인)
+        Log.d("WeatherViewModel", "✅ updateWeather 호출됨: $newData")
+        _uiState.value = newData
     }
 }

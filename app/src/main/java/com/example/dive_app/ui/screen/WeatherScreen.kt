@@ -1,3 +1,4 @@
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,12 +14,11 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,11 +26,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.dive_app.domain.model.WeatherViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.example.dive_app.MainActivity
+import com.example.dive_app.data.repository.WearDataRepository
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WeatherScreen(navController: NavController, weatherViewModel: WeatherViewModel = viewModel()) {
+fun WeatherScreen(
+    navController: NavController,
+    weatherViewModel: WeatherViewModel,
+    repo: WearDataRepository
+) {
+    val context = LocalContext.current
     val uiState by weatherViewModel.uiState
+    LaunchedEffect(Unit) {
+        (context as MainActivity).replyToPhone("/request_weather", "request_weather")
+    }
 
     Box(
         modifier = Modifier
