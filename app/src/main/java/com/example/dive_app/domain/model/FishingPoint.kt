@@ -11,7 +11,7 @@ data class FishingPoint(
     val material : String,
     val tide_time : String,
     val target : String,
-    val lat : Double,
-    val lon : Double,
+    val lat : Double?,
+    val lon : Double?,
     val point_dt : String
 ) : Parcelable
