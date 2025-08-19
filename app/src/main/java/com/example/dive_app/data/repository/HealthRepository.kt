@@ -11,7 +11,7 @@ class HealthRepository(private val dao: HealthRecordDao) {
     }
 
     fun getAllRecords(): Flow<List<HealthRecord>> {
-        return dao.getAllRecords()   // ✅ 여기서 Dao 함수 호출
+        return dao.getAllRecords()
     }
 
     suspend fun clearAll() {

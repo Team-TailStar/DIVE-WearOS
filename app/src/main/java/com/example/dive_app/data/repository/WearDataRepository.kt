@@ -24,6 +24,7 @@ class WearDataRepository(
                 "/response_tide" -> handleTide(data)
                 "/response_point" -> handlePoints(data)
                 "/response_location" -> handleLocation(data)
+                "/response_air_quality" -> handleAirQuality(data)
                 else -> Log.d("WatchMsg", "📩 알 수 없는 응답 → path=$path, data=$data")
             }
         } catch (e: Exception) {
@@ -41,7 +42,8 @@ class WearDataRepository(
             rain = json.getString("rain"),
             winddir = json.getString("winddir"),
             waveHt = json.getString("waveHt"),
-            waveDir = json.getString("waveDir")
+            waveDir = json.getString("waveDir"),
+            obsWt = json.getString("obsWt")
         )
         weatherViewModel.updateWeather(weather)
         Log.d("WatchMsg", "✅ 날씨 업데이트 완료")
@@ -103,5 +105,9 @@ class WearDataRepository(
         val lon = json.getDouble("lon")
         locationViewModel.updateLocation(lat, lon)
         Log.d("WatchMsg", "✅ 위치 업데이트 완료")
+    }
+
+    private fun handleAirQuality(data: String) {
+        Log.d("WatchMsg", "✅ 미세먼지 업데이트 완료")
     }
 }

@@ -22,7 +22,7 @@ class WeatherViewModel : ViewModel() {
             winddir = weatherData.winddir,
             waveHt = weatherData.waveHt,
             waveDir = weatherData.waveDir,
-            obs_wt = weatherData.obs_wt
+            obsWt = weatherData.obsWt
         )
 
         // 📌 로그 출력 (값 확인)
