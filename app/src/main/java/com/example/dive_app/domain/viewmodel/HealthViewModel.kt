@@ -1,10 +1,11 @@
-package com.example.dive_app.domain.model
+package com.example.dive_app.domain.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dive_app.data.db.AppDatabase
 import com.example.dive_app.data.repository.HealthRepository
+import com.example.dive_app.domain.model.HealthRecord
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

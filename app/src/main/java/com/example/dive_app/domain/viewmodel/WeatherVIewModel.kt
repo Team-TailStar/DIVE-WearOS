@@ -1,9 +1,10 @@
-package com.example.dive_app.domain.model
+package com.example.dive_app.domain.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.State
+import com.example.dive_app.domain.model.WeatherData
 
 class WeatherViewModel : ViewModel() {
     private val _uiState = mutableStateOf(WeatherData())
