@@ -21,6 +21,9 @@ import com.example.dive_app.MainActivity
 import com.example.dive_app.ui.component.CircleIconButton
 import kotlin.math.cos
 import kotlin.math.sin
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -32,20 +35,27 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // 오늘 날짜 가져오기
+        val today = LocalDate.now()
+
+        // "Mon Jun" 형식 (영문 약식 요일 + 월)
+        val dayMonthFormatter = DateTimeFormatter.ofPattern("EEE MMM", Locale.ENGLISH)
+        val dayMonth = today.format(dayMonthFormatter)
+        val dayOfMonth = today.dayOfMonth.toString()
         // 중앙 날짜 & 숫자
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = (-25).dp), // 위로 10dp 이동
+                .offset(y = (-25).dp), // 위로 25dp 이동
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Mon Jun",
+                text = dayMonth,   // 오늘 요일 + 월
                 color = Color.White,
                 fontSize = 18.sp
             )
             Text(
-                text = "1",
+                text = dayOfMonth, // 오늘 일자
                 color = Color.White,
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold
