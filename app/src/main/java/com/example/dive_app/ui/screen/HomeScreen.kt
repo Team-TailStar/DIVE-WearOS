@@ -11,18 +11,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Text
-import com.example.dive_app.data.repository.WearDataRepository
+import com.example.dive_app.MainActivity
 import com.example.dive_app.ui.component.CircleIconButton
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-fun HomeScreen(navController: NavController, repo: WearDataRepository) {
+fun HomeScreen(
+    navController: NavController
+) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -59,14 +63,15 @@ fun HomeScreen(navController: NavController, repo: WearDataRepository) {
             val icons = listOf(
                 Triple(Icons.Filled.LocationOn, Color(0xFF4CAF50)) {
                     navController.navigate("location")
+                    (context as MainActivity).requestPoint()
                 },
 
                 Triple(Icons.Filled.WbSunny, Color(0xFFFFC107), {
-                    repo.requestWeather()
+                    (context as MainActivity).requestWeather()
                     navController.navigate("weather")
                 }),
                 Triple(Icons.Filled.Waves, Color(0xFF2196F3), {
-                    repo.requestTide()
+                    (context as MainActivity).requestTide()
                     navController.navigate("tide")
                 }),
                 Triple(Icons.Filled.Favorite, Color(0xFFF44336), {

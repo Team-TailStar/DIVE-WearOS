@@ -1,4 +1,3 @@
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,25 +21,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.dive_app.domain.model.WeatherViewModel
+import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.dive_app.MainActivity
-import com.example.dive_app.data.repository.WearDataRepository
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WeatherScreen(
     navController: NavController,
     weatherViewModel: WeatherViewModel,
-    repo: WearDataRepository
 ) {
     val context = LocalContext.current
     val uiState by weatherViewModel.uiState
     LaunchedEffect(Unit) {
-        (context as MainActivity).replyToPhone("/request_weather", "request_weather")
+        (context as MainActivity).requestWeather()
     }
 
     Box(

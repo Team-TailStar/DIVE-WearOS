@@ -19,10 +19,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.dive_app.R
-import com.example.dive_app.domain.model.WeatherViewModel
+import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.dive_app.MainActivity
@@ -32,7 +31,7 @@ fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherVie
     val context = LocalContext.current
     val uiState by weatherViewModel.uiState
     LaunchedEffect(Unit) {
-        (context as MainActivity).replyToPhone("/request_weather", "request_weather")
+        (context as MainActivity).requestWeather()
     }
 
     Box(

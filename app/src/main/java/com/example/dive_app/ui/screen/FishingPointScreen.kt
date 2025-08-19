@@ -21,18 +21,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.example.dive_app.domain.model.FishingPoint
+import com.example.dive_app.MainActivity
+import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapView
 import com.naver.maps.map.overlay.Marker
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 
 @Composable
-fun FishingPointPage(
-    point: FishingPoint,
+fun FishingPointScreen(
+    fishingViewModel: FishingPointViewModel,
     navController: NavController,
 ) {
     val context = LocalContext.current
+
+    val points by fishingViewModel.points.collectAsState()
+    val point = points.firstOrNull()
+    LaunchedEffect(Unit) {
+        (context as MainActivity).requestPoint()
+    }
     val mapView = remember { MapView(context) }
 
     DisposableEffect(Unit) {
@@ -50,12 +60,12 @@ fun FishingPointPage(
                         naverMap.uiSettings.isZoomControlEnabled = false
                         naverMap.moveCamera(
                             CameraUpdate.scrollTo(
-                                LatLng(point.lat ?: 0.0, point.lon ?: 0.0) // null이면 0.0으로 처리
+                                LatLng(point?.lat ?: 0.0, point?.lon ?: 0.0)
                             )
                         )
 
                         Marker().apply {
-                            position = LatLng(point.lat ?: 0.0, point.lon ?: 0.0) // 안전하게 처리
+                            position = LatLng(point?.lat ?: 0.0, point?.lon ?: 0.0)
                             map = naverMap
                         }
                     }
@@ -114,13 +124,13 @@ fun FishingPointPage(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = point.point_nm,
+                text = point?.point_nm ?: "",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                text = point.point_dt ?: "거리 정보 없음",
+                text = point?.point_dt ?: "거리 정보 없음",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Cyan

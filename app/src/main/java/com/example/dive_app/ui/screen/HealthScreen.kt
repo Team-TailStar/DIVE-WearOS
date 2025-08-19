@@ -22,13 +22,12 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.dive_app.domain.model.HealthViewModel
+import com.example.dive_app.domain.viewmodel.HealthViewModel
 
 @Composable
 fun HealthScreen(
     viewModel: HealthViewModel
 ) {
-    val bpm by viewModel.currentBpm.collectAsState()
     val records by viewModel.records.collectAsState()
     Column(
         modifier = Modifier
@@ -62,10 +61,10 @@ fun HealthScreen(
 
         Spacer(Modifier.height(6.dp))
 
-        // ❤️ 심박수 그래프
+        // 심박수 그래프
         if (records.isNotEmpty()) {
             ChartCard(title = "심박수 기록") { chart ->
-                // ✅ 최근 30개만 사용
+                // 최근 30개만 사용
                 val limited = records.takeLast(30)
 
                 val entries = limited.mapIndexed { index, r ->
@@ -80,7 +79,7 @@ fun HealthScreen(
                 }
                 chart.data = LineData(dataSet)
 
-                // ✅ Y축 범위 고정 (심박수 정상 범위)
+                // Y축 범위 고정 (심박수 정상 범위)
                 chart.axisLeft.apply {
                     axisMinimum = 40f
                     axisMaximum = 120f
@@ -89,7 +88,7 @@ fun HealthScreen(
                 }
                 chart.xAxis.gridColor = android.graphics.Color.DKGRAY
 
-                // ✅ 애니메이션 제거 (튕김 방지)
+                // 애니메이션 제거 (튕김 방지)
                 chart.animateX(0)
             }
         }

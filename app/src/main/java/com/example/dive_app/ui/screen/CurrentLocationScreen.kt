@@ -24,22 +24,27 @@ import com.naver.maps.map.MapView
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.OverlayImage
 import com.example.dive_app.R
+import com.example.dive_app.domain.viewmodel.LocationViewModel
+import androidx.compose.runtime.livedata.observeAsState
 
 @Composable
-fun CurrentLocationPage() {
+fun CurrentLocationScreen(
+    locationViewModel: LocationViewModel
+) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     var region1 by remember { mutableStateOf("로딩중...") }
     var region2 by remember { mutableStateOf("") }
-    val latitude = 35.1151
-    val longitude = 129.0415
+    val location by locationViewModel.location.observeAsState()
+    val latitude = location?.first ?: 35.1151
+    val longitude = location?.second ?: 129.0415
 
     DisposableEffect(Unit) {
         mapView.onCreate(null)
         onDispose { mapView.onDestroy() }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(latitude, longitude) {
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
             region1 = r1
             region2 = r2
@@ -57,7 +62,7 @@ fun CurrentLocationPage() {
 
                         Marker().apply {
                             position = LatLng(latitude, longitude)
-                            icon = OverlayImage.fromResource(R.drawable.ic_my_location) // 커스텀 아이콘 적용
+                            icon = OverlayImage.fromResource(R.drawable.ic_my_location)
                             map = naverMap
                         }
                     }
@@ -71,7 +76,7 @@ fun CurrentLocationPage() {
             contentDescription = "다음",
             tint = Color.Black,
             modifier = Modifier
-                .align(Alignment.CenterEnd) // 화면 오른쪽 중앙
+                .align(Alignment.CenterEnd)
                 .padding(end = 4.dp)
                 .size(28.dp)
         )

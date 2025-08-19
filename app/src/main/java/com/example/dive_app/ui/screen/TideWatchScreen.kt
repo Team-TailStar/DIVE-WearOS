@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavController
 import com.example.dive_app.domain.model.TideInfoData
-import com.example.dive_app.domain.model.TideViewModel
+import com.example.dive_app.domain.viewmodel.TideViewModel
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -36,9 +36,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.cos
 import kotlin.math.sin
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.Immutable
-import com.example.dive_app.data.repository.WearDataRepository
+import androidx.compose.ui.platform.LocalContext
+import com.example.dive_app.MainActivity
 
 import java.time.format.DateTimeFormatter
 
@@ -104,11 +104,10 @@ fun TideInfoData.toMarkers(): List<TideMarker> {
 @Composable
 fun TideWatchScreen(
     navController: NavController,
-    tideVM: TideViewModel,
-    repo: WearDataRepository
+    tideVM: TideViewModel
 ) {
     val tideState = tideVM.uiState.value
-
+    val context = LocalContext.current
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
     var centerTime by remember {
         mutableStateOf(
@@ -121,7 +120,7 @@ fun TideWatchScreen(
     var showLegend by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        repo.requestTide()
+        (context as MainActivity).requestTide()
     }
 
     // ⏱️ 시계 현재시간 계속 업데이트
@@ -133,10 +132,10 @@ fun TideWatchScreen(
     }
 
     // ⏮️ tideList에 들어있는 날짜 리스트
-    val availableDates = tideState.tideList.mapNotNull { runCatching { LocalDate.parse(it.date) }.getOrNull() }
+    val availableDates = tideState.tideList.mapNotNull { runCatching { LocalDate.parse(it.pThisDate) }.getOrNull() }
 
     // 📅 현재 날짜에 맞는 데이터 찾기
-    val today = tideState.tideList.find { it.date == currentDate.toString() }
+    val today = tideState.tideList.find { it.pThisDate == currentDate.toString() }
 
     // 변환된 데이터
     val markers = today?.toMarkers() ?: emptyList()

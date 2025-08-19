@@ -16,15 +16,15 @@ import androidx.compose.ui.unit.sp
 import com.example.dive_app.domain.model.FishingPoint
 
 @Composable
-fun FishingDetailPage(point: FishingPoint) {
+fun FishingDetailScreen(point: FishingPoint) {
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // ✅ WearOS 기본 스타일: 블랙 배경
+            .background(Color.Black)
             .padding(12.dp)
             .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally, // 👉 전체 중앙 정렬
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
         // 상단 주소
@@ -34,7 +34,7 @@ fun FishingDetailPage(point: FishingPoint) {
             color = Color.Gray
         )
 
-        // 포인트명
+        // 포인트 명
         Text(
             text = point.point_nm,
             fontSize = 20.sp,
@@ -50,7 +50,7 @@ fun FishingDetailPage(point: FishingPoint) {
         InfoRow("수심", point.dpwt)
         InfoRow("저질", point.material)
         InfoRow("적정 물때", point.tide_time)
-        InfoRow("적정 물때", point.target)
+        InfoRow("대상 어종", point.target)
 
         Spacer(Modifier.height(12.dp))
     }
@@ -62,7 +62,7 @@ fun InfoRow(label: String, value: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.Center  // 👉 가로 중앙 정렬
+        horizontalArrangement = Arrangement.Center
     ) {
         Text(
             text = label,
@@ -70,7 +70,7 @@ fun InfoRow(label: String, value: String) {
             fontWeight = FontWeight.SemiBold,
             color = Color.White
         )
-        Spacer(modifier = Modifier.width(6.dp)) // 👉 가로 간격 좁힘
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = if (value.isNotBlank()) value else "-",
             fontSize = 14.sp,
@@ -92,7 +92,7 @@ fun InfoSection(title: String, content: String) {
             text = title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF4FC3F7) // 파란색 포인트
+            color = Color(0xFF4FC3F7)
         )
         Text(
             text = if (content.isNotBlank()) content else "정보 없음",
