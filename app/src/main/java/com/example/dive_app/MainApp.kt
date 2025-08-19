@@ -9,6 +9,7 @@ import com.example.dive_app.common.theme.MyApplicationTheme
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.model.TideInfoData
+import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import com.example.dive_app.ui.screen.AirQualityScreen
 import com.example.dive_app.ui.screen.FishingDetailScreen
 import com.example.dive_app.ui.screen.HealthScreen
@@ -30,6 +31,7 @@ fun MainApp(
     weatherVM: WeatherViewModel,
     tideVM: TideViewModel,
     locationVM: LocationViewModel,
+    airQualityVM: AirQualityViewModel
 ) {
     MyApplicationTheme {
         val navController = rememberNavController()
@@ -69,7 +71,7 @@ fun MainApp(
             }
             composable("weatherMenu") { WeatherMenuScreen(navController) }
             composable("sea_weather") { SeaWeatherScreen(navController, weatherVM) }
-            composable("air_quality") { AirQualityScreen() }
+            composable("air_quality") { AirQualityScreen(navController, airQualityVM) }
             composable("health") { HealthScreen(healthVM) }
         }
     }

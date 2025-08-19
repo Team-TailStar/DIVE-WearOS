@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.dive_app.data.repository.WearDataRepository
+import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.viewmodel.TideViewModel
@@ -35,7 +36,8 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     private val weatherViewModel: WeatherViewModel by viewModels()
     private val fishViewModel: FishingPointViewModel by viewModels()
     private val locationViewModel: LocationViewModel by viewModels()
-    
+    private val airQualityViewModel: AirQualityViewModel by viewModels()
+
     private lateinit var heartRateSensorManager: HeartRateSensorManager
     private lateinit var repo: WearDataRepository
 
@@ -48,11 +50,11 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             Log.d("WatchMsg", "❤️ Heart rate: $bpm BPM")
             healthViewModel.addHeartRate(bpm)
         }
-        repo = WearDataRepository(weatherViewModel, tideViewModel, fishViewModel, locationViewModel)
-        requestWeather()
+        repo = WearDataRepository(
+            weatherViewModel, tideViewModel, fishViewModel, locationViewModel, airQualityViewModel)
 
         setContent {
-            MainApp(healthViewModel, fishViewModel, weatherViewModel, tideViewModel, locationViewModel)
+            MainApp(healthViewModel, fishViewModel, weatherViewModel, tideViewModel, locationViewModel, airQualityViewModel)
         }
     }
 

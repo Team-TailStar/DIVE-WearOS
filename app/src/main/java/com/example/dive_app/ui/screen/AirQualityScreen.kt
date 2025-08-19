@@ -1,20 +1,41 @@
 package com.example.dive_app.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.dive_app.MainActivity
+import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 
 @Composable
-fun AirQualityScreen() {
+fun AirQualityScreen(
+    navController: NavController,
+    airQualityViewModel: AirQualityViewModel
+) {
+    val context = LocalContext.current
+    val uiState by airQualityViewModel.uiState
+    var selectedType by remember { mutableStateOf("PM10") }
+
+    LaunchedEffect(Unit) {
+        (context as MainActivity).requestAirQuality()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,16 +43,16 @@ fun AirQualityScreen() {
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ✅ 상단 공기질 선택 버튼 (PM2.5, PM10, O3)
+        // ✅ 상단 선택 버튼
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp), // ← 위에서 조금 내려줌
+                .padding(top = 24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            AirQualityChip("PM2.5")
-            AirQualityChip("PM10")
-            AirQualityChip("O3")
+            AirQualityChip("PM2.5", selectedType) { selectedType = it }
+            AirQualityChip("PM10", selectedType) { selectedType = it }
+            AirQualityChip("O3", selectedType) { selectedType = it }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -46,7 +67,14 @@ fun AirQualityScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ✅ 선택된 측정치 표시
+        // ✅ 선택된 값에 따라 다른 데이터 표시
+        val selectedValue = when (selectedType) {
+            "PM2.5" -> uiState.pm25Grade
+            "PM10" -> uiState.pm10Grade
+            "O3" -> uiState.o3Grade
+            else -> 0
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -58,7 +86,7 @@ fun AirQualityScreen() {
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "PM10   19µg/㎥",
+                    text = selectedValue.toString(),
                     color = Color.White,
                     fontSize = 14.sp
                 )
@@ -67,7 +95,7 @@ fun AirQualityScreen() {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ✅ 미세먼지 상태 표시
+        // ✅ 상태 표시 (예시)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,13 +105,13 @@ fun AirQualityScreen() {
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "미세먼지",
+                    text = selectedType, // → 어떤 항목인지 보여줌
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "매우 나쁨",
+                    text = "매우 나쁨", // 등급에 맞게 나중에 매핑 가능
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -94,18 +122,27 @@ fun AirQualityScreen() {
 }
 
 @Composable
-fun AirQualityChip(label: String) {
+fun AirQualityChip(
+    label: String,
+    selected: String,
+    onClick: (String) -> Unit
+) {
+    val isSelected = label == selected
     Box(
         modifier = Modifier
-            .background(Color.DarkGray, CircleShape)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .background(
+                if (isSelected) Color.Blue else Color.DarkGray, // ✅ 선택 여부 색상
+                CircleShape
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .clickable { onClick(label) }, // ✅ 클릭 가능
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             color = Color.White,
             fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }
 }

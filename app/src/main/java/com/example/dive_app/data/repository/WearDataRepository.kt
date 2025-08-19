@@ -1,11 +1,13 @@
 package com.example.dive_app.data.repository
 
 import android.util.Log
+import com.example.dive_app.domain.model.AirQuality
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.model.TideInfoData
 import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.model.WeatherData
+import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import org.json.JSONArray
@@ -15,7 +17,8 @@ class WearDataRepository(
     private val weatherViewModel: WeatherViewModel,
     private val tideViewModel: TideViewModel,
     private val fishingPointViewModel: FishingPointViewModel,
-    private val locationViewModel: LocationViewModel
+    private val locationViewModel: LocationViewModel,
+    private val airQualityViewModel: AirQualityViewModel
 ) {
     fun handleMessage(path: String, data: String) {
         try {
@@ -98,6 +101,7 @@ class WearDataRepository(
         fishingPointViewModel.updatePoints(pointList)
         Log.d("WatchMsg", "✅ 포인트 업데이트 완료")
     }
+    
 
     private fun handleLocation(data: String) {
         val json = JSONObject(data)
@@ -108,6 +112,18 @@ class WearDataRepository(
     }
 
     private fun handleAirQuality(data: String) {
+        val json = JSONObject(data)
+        val airQuality = AirQuality(
+            no2Value = json.getDouble("no2Value"),
+            o3Value = json.getDouble("o3Value"),
+            pm10Value = json.getDouble("pm10Value"),
+            pm25Value = json.getDouble("pm25Value"),
+            o3Grade = json.getInt("o3Grade"),
+            no2Grade = json.getInt("no2Grade"),
+            pm10Grade = json.getInt("pm10Grade"),
+            pm25Grade = json.getInt("pm25Grade"),
+        )
+        airQualityViewModel.updateAirQuality(airQuality)
         Log.d("WatchMsg", "✅ 미세먼지 업데이트 완료")
     }
 }
