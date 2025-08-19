@@ -58,7 +58,7 @@ fun TideDetailPage(
             .fillMaxSize()
             .background(Color.Black)
             .padding(8.dp)
-            .nestedScroll(nestedScrollConnection), // 👈 제스처 연결
+            .nestedScroll(nestedScrollConnection),
         contentAlignment = Alignment.TopCenter
     ) {
         LazyColumn(
@@ -71,13 +71,13 @@ fun TideDetailPage(
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = tide.date,
+                        text = tide.pThisDate,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = tide.mul,
+                        text = tide.pMul,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Cyan
@@ -125,8 +125,8 @@ fun TideDetailPage(
             // 🌞🌙 일출/일몰, 월출/월몰 카드
             item {
                 val events = listOf(
-                    SunMoonEvent("일출/일몰", tide.sun, Color.Yellow),
-                    SunMoonEvent("월출/월몰", tide.moon, Color.Cyan)
+                    SunMoonEvent("일출/일몰", tide.pSun, Color.Yellow),
+                    SunMoonEvent("월출/월몰", tide.pMoon, Color.Cyan)
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(0.9f),
