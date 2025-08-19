@@ -67,14 +67,19 @@ fun AirQualityScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ✅ 선택된 값에 따라 다른 데이터 표시
-        val selectedValue = when (selectedType) {
+        val selectedGrade = when (selectedType) {
             "PM2.5" -> uiState.pm25Grade
             "PM10" -> uiState.pm10Grade
             "O3" -> uiState.o3Grade
             else -> 0
         }
-
+        val selectedValue = when (selectedType) {
+            "PM2.5" -> uiState.pm25Value
+            "PM10" -> uiState.pm10Value
+            "O3" -> uiState.o3Value
+            else -> 0
+        }
+        val (statusText, statusColor) = getAirQualityStatus(selectedGrade)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -99,25 +104,35 @@ fun AirQualityScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Red, RoundedCornerShape(50))
+                .background(statusColor, RoundedCornerShape(50))
                 .padding(vertical = 5.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = selectedType, // → 어떤 항목인지 보여줌
+                    text = selectedType, // 항목명 (PM2.5, PM10, O3)
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "매우 나쁨", // 등급에 맞게 나중에 매핑 가능
+                    text = statusText, // → "좋음", "보통", "나쁨", "매우 나쁨"
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
+    }
+}
+
+fun getAirQualityStatus(grade: Int): Pair<String, Color> {
+    return when (grade) {
+        1 -> "좋음" to Color(0xFF4CAF50)   // 초록
+        2 -> "보통" to Color(0xFFFFC107)   // 노랑
+        3 -> "나쁨" to Color(0xFFFF5722)   // 주황
+        4 -> "매우 나쁨" to Color(0xFFF44336) // 빨강
+        else -> "정보 없음" to Color.Gray
     }
 }
 
