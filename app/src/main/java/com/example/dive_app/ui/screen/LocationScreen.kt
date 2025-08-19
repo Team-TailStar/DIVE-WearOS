@@ -22,13 +22,12 @@ fun LocationScreen(
         pageCount = { 1 + points.size } // 페이지 개수
     )
 
-    HorizontalPager(
-        state = pagerState
-    ) { page ->
+    HorizontalPager(state = pagerState) { page ->
         if (page == 0) {
             CurrentLocationScreen(locationViewModel)
         } else {
-            FishingPointScreen(fishingViewModel, navController)
+            val point = points[page - 1]
+            FishingPointScreen(point, navController)
         }
     }
 }

@@ -46,11 +46,21 @@ fun TideInfoData.toCallouts(): List<Pair<LocalTime, Color>> {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
 
     return listOfNotNull(
-        jowi1.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Blue },
-        jowi2.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Red },
-        jowi3.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Blue },
-        jowi4.split(" ").firstOrNull()?.let { LocalTime.parse(it, formatter) to Color.Red },
+        jowi1.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Blue },
+        jowi2.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Red },
+        jowi3.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Blue },
+        jowi4.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Red },
     )
+}
+
+fun parsePThisDate(raw: String): LocalDate? {
+    val parts = raw.split("-")
+    return if (parts.size >= 3) {
+        val year = parts[0].toInt()
+        val month = parts[1].toInt()
+        val day = parts[2].toInt()
+        LocalDate.of(year, month, day)
+    } else null
 }
 
 /* ---------- 데이터 ---------- */
@@ -118,13 +128,11 @@ fun TideWatchScreen(
         )
     }
     var showLegend by remember { mutableStateOf(false) }
+    var currentIndex by remember { mutableStateOf(0) }
+    val today = tideState.tideList.getOrNull(currentIndex)
 
     LaunchedEffect(Unit) {
         (context as MainActivity).requestTide()
-    }
-
-    // ⏱️ 시계 현재시간 계속 업데이트
-    LaunchedEffect(Unit) {
         while (true) {
             centerTime = LocalTime.now()
             delay(1000L)
@@ -133,9 +141,6 @@ fun TideWatchScreen(
 
     // ⏮️ tideList에 들어있는 날짜 리스트
     val availableDates = tideState.tideList.mapNotNull { runCatching { LocalDate.parse(it.pThisDate) }.getOrNull() }
-
-    // 📅 현재 날짜에 맞는 데이터 찾기
-    val today = tideState.tideList.find { it.pThisDate == currentDate.toString() }
 
     // 변환된 데이터
     val markers = today?.toMarkers() ?: emptyList()
@@ -172,23 +177,6 @@ fun TideWatchScreen(
 
                 Box(Modifier.fillMaxSize()) {
 
-                    // ◀️ 좌 화살표 (이전 날짜)
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = "prev day",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 8.dp)
-                            .size(18.dp)
-                            .clickable {
-                                val prev = currentDate.minusDays(1)
-                                if (availableDates.contains(prev)) {
-                                    currentDate = prev
-                                }
-                            }
-                    )
-                    // ▶️ 우 화살표 (다음 날짜)
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = "next day",
@@ -198,12 +186,33 @@ fun TideWatchScreen(
                             .padding(end = 8.dp)
                             .size(18.dp)
                             .clickable {
-                                val next = currentDate.plusDays(1)
-                                if (availableDates.contains(next)) {
-                                    currentDate = next
+                                if (currentIndex < tideState.tideList.lastIndex) {
+                                    currentIndex++
+                                    tideState.tideList.getOrNull(currentIndex)?.let { next ->
+                                        currentDate = parsePThisDate(next.pThisDate) ?: currentDate
+                                    }
                                 }
                             }
                     )
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = "prev day",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 8.dp)
+                            .size(18.dp)
+                            .clickable {
+                                if (currentIndex > 0) {
+                                    currentIndex--
+                                    tideState.tideList.getOrNull(currentIndex)?.let { prev ->
+                                        currentDate = parsePThisDate(prev.pThisDate) ?: currentDate
+                                    }
+                                }
+                            }
+                    )
+
                     // ⬇️ 아래 화살표 (상세페이지 이동)
                     Icon(
                         imageVector = Icons.Default.ArrowDownward,

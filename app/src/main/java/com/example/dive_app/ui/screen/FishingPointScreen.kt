@@ -30,24 +30,28 @@ import com.naver.maps.map.overlay.Marker
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import com.example.dive_app.domain.model.FishingPoint
 
 @Composable
 fun FishingPointScreen(
-    fishingViewModel: FishingPointViewModel,
+    point: FishingPoint,
     navController: NavController,
 ) {
     val context = LocalContext.current
 
-    val points by fishingViewModel.points.collectAsState()
-    val point = points.firstOrNull()
     LaunchedEffect(Unit) {
         (context as MainActivity).requestPoint()
     }
     val mapView = remember { MapView(context) }
 
     DisposableEffect(Unit) {
-        mapView.onCreate(null)
-        onDispose { mapView.onDestroy() }
+        mapView.onStart()
+        mapView.onResume()
+        onDispose {
+            mapView.onPause()
+            mapView.onStop()
+            mapView.onDestroy()
+        }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
