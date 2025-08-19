@@ -9,5 +9,5 @@ data class WeatherData(
     val winddir: String = "",
     val waveHt: String = "",
     val waveDir: String = "",
-    val obs_wt: String = ""
+    val obsWt: String = ""
 )

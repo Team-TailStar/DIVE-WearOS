@@ -60,7 +60,7 @@ fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherVie
                 color = Color.Black
             )
             Text(
-                text = uiState.obs_wt,
+                text = uiState.obsWt,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
