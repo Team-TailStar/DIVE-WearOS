@@ -39,11 +39,6 @@ fun CurrentLocationScreen(
     val latitude = location?.first ?: 35.1151
     val longitude = location?.second ?: 129.0415
 
-    DisposableEffect(Unit) {
-        mapView.onCreate(null)
-        onDispose { mapView.onDestroy() }
-    }
-
     LaunchedEffect(latitude, longitude) {
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
             region1 = r1
@@ -54,17 +49,19 @@ fun CurrentLocationScreen(
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
-            factory = {
-                mapView.apply {
-                    getMapAsync { naverMap ->
-                        naverMap.uiSettings.isZoomControlEnabled = false
-                        naverMap.moveCamera(CameraUpdate.scrollTo(LatLng(latitude, longitude)).animate(CameraAnimation.Easing))
+            factory = { mapView },
+            update = { mv ->
+                mv.getMapAsync { naverMap ->
+                    naverMap.uiSettings.isZoomControlEnabled = false
+                    naverMap.moveCamera(
+                        CameraUpdate.scrollTo(LatLng(latitude, longitude))
+                            .animate(CameraAnimation.Easing)
+                    )
 
-                        Marker().apply {
-                            position = LatLng(latitude, longitude)
-                            icon = OverlayImage.fromResource(R.drawable.ic_my_location)
-                            map = naverMap
-                        }
+                    Marker().apply {
+                        position = LatLng(latitude, longitude)
+                        icon = OverlayImage.fromResource(R.drawable.ic_my_location)
+                        map = naverMap
                     }
                 }
             }
