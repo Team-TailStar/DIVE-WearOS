@@ -54,7 +54,7 @@ class WearDataRepository(
 
     private fun handleTide(data: String) {
         val json = JSONObject(data)
-        val tidesArray = JSONArray(json.getString("tides"))
+        val tidesArray = json.getJSONArray("tides")
 
         val tideList = mutableListOf<TideInfoData>()
         for (i in 0 until tidesArray.length()) {
@@ -62,14 +62,14 @@ class WearDataRepository(
             tideList.add(
                 TideInfoData(
                     pThisDate = obj.getString("pThisDate"),
-                    pName = obj.getString("pName"),
+                    pName = obj.getString("pSelArea"),
                     pMul = obj.getString("pMul"),
                     pSun = obj.getString("pSun"),
                     pMoon = obj.getString("pMoon"),
-                    jowi1 = obj.optString("jowi1", ""),
-                    jowi2 = obj.optString("jowi2", ""),
-                    jowi3 = obj.optString("jowi3", ""),
-                    jowi4 = obj.optString("jowi4", "")
+                    jowi1 = obj.optString("pTime1", ""),
+                    jowi2 = obj.optString("pTime2", ""),
+                    jowi3 = obj.optString("pTime3", ""),
+                    jowi4 = obj.optString("pTime4", "")
                 )
             )
         }
@@ -79,27 +79,31 @@ class WearDataRepository(
 
     private fun handlePoints(data: String) {
         val json = JSONObject(data)
-        val pointsArray = JSONArray(json.getString("points"))
+        val pointsArray: JSONArray? = json.optJSONArray("points")
 
         val pointList = mutableListOf<FishingPoint>()
-        for (i in 0 until pointsArray.length()) {
-            val obj = pointsArray.getJSONObject(i)
-            pointList.add(
-                FishingPoint(
-                    name = obj.getString("name"),
-                    point_nm = obj.getString("point_nm"),
-                    dpwt = obj.getString("dpwt"),
-                    material = obj.getString("material"),
-                    tide_time = obj.getString("tide_time"),
-                    target = obj.getString("target"),
-                    lat = obj.getDouble("lat"),
-                    lon = obj.getDouble("lon"),
-                    point_dt = obj.getString("point_dt")
+        if (pointsArray != null) {
+            for (i in 0 until pointsArray.length()) {
+                val obj = pointsArray.getJSONObject(i)
+                pointList.add(
+                    FishingPoint(
+                        name = obj.optString("name"),  
+                        point_nm = obj.optString("point_nm"),
+                        dpwt = obj.optString("dpwt"),
+                        material = obj.optString("material"),
+                        tide_time = obj.optString("tide_time"),
+                        target = obj.optString("target"),
+                        lat = obj.optDouble("lat", 0.0),
+                        lon = obj.optDouble("lon", 0.0),
+                        point_dt = obj.optString("point_dt")
+                    )
                 )
-            )
+            }
+        } else {
+            Log.e("WatchMsg", "⚠️ 데이터가 없음 : /response_point")
         }
         fishingPointViewModel.updatePoints(pointList)
-        Log.d("WatchMsg", "✅ 포인트 업데이트 완료")
+        Log.d("WatchMsg", "✅ 포인트 업데이트 완료 ${pointList}")
     }
     
 

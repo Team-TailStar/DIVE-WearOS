@@ -134,7 +134,7 @@ fun FishingPointScreen(
                 color = Color.White
             )
             Text(
-                text = point?.point_dt ?: "거리 정보 없음",
+                text = point?.point_dt + "km" ?: "거리 정보 없음",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Cyan
