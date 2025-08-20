@@ -27,6 +27,8 @@ import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import com.example.dive_app.MainActivity
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -43,8 +45,15 @@ fun WeatherScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFE082)) // 배경
-    ) {
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFAE198).copy(alpha = 1f),
+                        Color(0xFFFFC107).copy(alpha = 0.7f)
+                    )
+                )
+            ))
+            {
         // 메인 날씨 정보
         Column(
             modifier = Modifier
