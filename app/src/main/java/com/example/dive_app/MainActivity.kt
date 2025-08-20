@@ -49,6 +49,12 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         heartRateSensorManager = HeartRateSensorManager(this) { bpm ->
             Log.d("WatchMsg", "❤️ Heart rate: $bpm BPM")
             healthViewModel.addHeartRate(bpm)
+
+            val responseJson = JSONObject().apply {
+                put("heart_rate", bpm)
+                put("timestamp", System.currentTimeMillis())
+            }
+            replyToPhone("/response_heart_rate", responseJson.toString())
         }
         repo = WearDataRepository(
             weatherViewModel, tideViewModel, fishViewModel, locationViewModel, airQualityViewModel)
@@ -65,8 +71,11 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         when (path) {
             "/request_heart_rate" -> {
                 Log.d("WatchMsg", "📩 폰에서 심박수 요청 받음")
+
+                val latestBpm = healthViewModel.currentBpm.value
+
                 val responseJson = JSONObject().apply {
-                    put("heart_rate", "72")  // TODO: 실제 센서 값 넣기
+                    put("heart_rate", latestBpm)
                     put("timestamp", System.currentTimeMillis())
                 }
                 replyToPhone("/response_heart_rate", responseJson.toString())
@@ -96,6 +105,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     fun requestTide() = replyToPhone("/request_tide", "request")
     fun requestPoint() = replyToPhone("/request_point", "request")
     fun requestAirQuality() = replyToPhone("/request_air_quality", "request")
+    fun requestLocation() = replyToPhone("/request_location", "request")
 
     /**
      * 메시지 전송 공통 함수
