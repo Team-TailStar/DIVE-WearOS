@@ -114,16 +114,17 @@ class WearDataRepository(
     private fun handleAirQuality(data: String) {
         val json = JSONObject(data)
         val airQuality = AirQuality(
-            no2Value = json.getDouble("no2Value"),
-            o3Value = json.getDouble("o3Value"),
-            pm10Value = json.getDouble("pm10Value"),
-            pm25Value = json.getDouble("pm25Value"),
-            o3Grade = json.getInt("o3Grade"),
-            no2Grade = json.getInt("no2Grade"),
-            pm10Grade = json.getInt("pm10Grade"),
-            pm25Grade = json.getInt("pm25Grade"),
+            no2Value = json.optDouble("no2Value", -1.0),
+            o3Value = json.optDouble("o3Value", -1.0),
+            pm10Value = json.optDouble("pm10Value", -1.0),
+            pm25Value = json.optDouble("pm25Value", -1.0),
+            o3Grade = json.optInt("o3Grade", -1),
+            no2Grade = json.optInt("no2Grade", -1),
+            pm10Grade = json.optInt("pm10Grade", -1),
+            pm25Grade = json.optInt("pm25Grade", -1),
         )
+        Log.d("WatchMsg", "미세먼지 데이터: $data")
         airQualityViewModel.updateAirQuality(airQuality)
-        Log.d("WatchMsg", "✅ 미세먼지 업데이트 완료")
+        Log.d("WatchMsg", "✅ 미세먼지 업데이트 완료: $airQuality")
     }
 }
