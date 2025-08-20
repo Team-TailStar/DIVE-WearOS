@@ -48,6 +48,10 @@ android {
 
 dependencies {
     implementation(platform(libs.compose.bom))
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
+
+    implementation("androidx.compose.animation:animation")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     implementation(libs.ui)
     implementation(libs.ui.graphics)
