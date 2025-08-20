@@ -81,6 +81,7 @@ fun HomeScreen(navController: NavController) {
                 Triple(Icons.Filled.LocationOn, Color(0xFF4CAF50)) {
                     navController.navigate("location")
                     (context as MainActivity).requestPoint()
+                    (context as MainActivity).requestLocation()
                 },
                 Triple(Icons.Filled.WbSunny, Color(0xFFFFC107)) {
                     (context as MainActivity).requestWeather()

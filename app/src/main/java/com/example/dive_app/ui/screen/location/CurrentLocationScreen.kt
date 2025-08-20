@@ -1,5 +1,6 @@
-package com.example.dive_app.ui.screen
+package com.example.dive_app.ui.screen.location
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ fun CurrentLocationScreen(
             region2 = r2
         }
     }
+    Log.d("WatchMsg", "현재 위치 : ${region1} ${region2}")
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(

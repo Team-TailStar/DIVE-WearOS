@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen
+package com.example.dive_app.ui.screen.location
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,14 +22,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.example.dive_app.MainActivity
-import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapView
 import com.naver.maps.map.overlay.Marker
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import com.example.dive_app.domain.model.FishingPoint
 
 @Composable
@@ -134,7 +131,7 @@ fun FishingPointScreen(
                 color = Color.White
             )
             Text(
-                text = point?.point_dt ?: "거리 정보 없음",
+                text = point?.point_dt + "km" ?: "거리 정보 없음",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Cyan
