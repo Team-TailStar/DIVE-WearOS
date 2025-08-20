@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen.tide
+package com.example.dive_app.ui.screen
 
 // ── Compose / Wear / Foundation
 import androidx.compose.foundation.Canvas

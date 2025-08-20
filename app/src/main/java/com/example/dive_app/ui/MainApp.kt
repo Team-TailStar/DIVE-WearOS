@@ -1,11 +1,21 @@
-// app/src/main/java/com/example/dive_app/ui/MainApp.kt
 package com.example.dive_app.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import com.example.dive_app.ui.theme.DiveTheme
+import androidx.compose.ui.Modifier
+
+import com.example.dive_app.common.theme.MyApplicationTheme
 import com.example.dive_app.ui.nav.AppNavHost
-import com.example.dive_app.domain.viewmodel.*    // HealthViewModel 등
+
+// ViewModels
+import com.example.dive_app.domain.viewmodel.AirQualityViewModel
+import com.example.dive_app.domain.viewmodel.HealthViewModel
+import com.example.dive_app.domain.viewmodel.LocationViewModel
+import com.example.dive_app.domain.viewmodel.TideViewModel
+import com.example.dive_app.domain.viewmodel.WeatherViewModel
+import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 
 @Composable
 fun MainApp(
@@ -16,16 +26,18 @@ fun MainApp(
     locationViewModel: LocationViewModel,
     airQualityViewModel: AirQualityViewModel
 ) {
-    DiveTheme {
-        Scaffold { // 바텀/탑바 쓰면 padding 전달해서 쓰면 됨
-            AppNavHost(
-                healthViewModel = healthViewModel,
-                fishViewModel = fishViewModel,
-                weatherViewModel = weatherViewModel,
-                tideViewModel = tideViewModel,
-                locationViewModel = locationViewModel,
-                airQualityViewModel = airQualityViewModel
-            )
+    MyApplicationTheme {
+        Scaffold { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                AppNavHost(
+                    healthViewModel = healthViewModel,
+                    fishViewModel = fishViewModel,
+                    weatherViewModel = weatherViewModel,
+                    tideViewModel = tideViewModel,
+                    locationViewModel = locationViewModel,
+                    airQualityViewModel = airQualityViewModel
+                )
+            }
         }
     }
 }

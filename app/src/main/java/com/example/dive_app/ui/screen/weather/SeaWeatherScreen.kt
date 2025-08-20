@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen.weather
+package com.example.dive_app.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

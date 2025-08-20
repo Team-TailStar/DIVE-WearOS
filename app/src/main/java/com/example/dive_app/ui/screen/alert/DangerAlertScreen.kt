@@ -1,5 +1,4 @@
-package com.example.dive_app.ui.screen.alert
-
+package com.example.dive_app.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape

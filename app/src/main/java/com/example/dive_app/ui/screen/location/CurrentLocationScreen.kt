@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen.location
+package com.example.dive_app.ui.screen
 
 import android.util.Log
 import androidx.compose.foundation.background

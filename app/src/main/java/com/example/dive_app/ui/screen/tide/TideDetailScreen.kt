@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen.tide
+package com.example.dive_app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
