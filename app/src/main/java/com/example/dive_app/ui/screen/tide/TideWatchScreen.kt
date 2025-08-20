@@ -1,6 +1,7 @@
-package com.example.dive_app.ui.screen
+package com.example.dive_app.ui.screen.tide
 
 // ── Compose / Wear / Foundation
+import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -291,7 +292,7 @@ private fun TideDial(
     val tickW = 2f
 
     Box(modifier.size(diameter), contentAlignment = Alignment.Center) {
-        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize()) {
             val cx = size.width / 2f
             val cy = size.height / 2f
             val rOuter = size.minDimension / 2f

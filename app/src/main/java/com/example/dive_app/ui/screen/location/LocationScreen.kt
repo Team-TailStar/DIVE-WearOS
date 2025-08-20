@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen
+package com.example.dive_app.ui.screen.location
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.HorizontalPager

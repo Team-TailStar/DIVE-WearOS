@@ -1,4 +1,4 @@
-package com.example.dive_app.ui.screen
+package com.example.dive_app.ui.screen.health
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
