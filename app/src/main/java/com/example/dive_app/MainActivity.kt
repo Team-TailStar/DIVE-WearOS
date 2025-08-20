@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     fun requestTide() = replyToPhone("/request_tide", "request")
     fun requestPoint() = replyToPhone("/request_point", "request")
     fun requestAirQuality() = replyToPhone("/request_air_quality", "request")
+    fun requestLocation() = replyToPhone("/request_location", "request")
 
     /**
      * 메시지 전송 공통 함수
