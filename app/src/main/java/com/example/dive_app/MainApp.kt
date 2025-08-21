@@ -1,31 +1,27 @@
 package com.example.dive_app
 
-import WeatherScreen
-import android.util.Log
+import com.example.dive_app.ui.screen.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.dive_app.common.theme.MyApplicationTheme
 import com.example.dive_app.domain.model.FishingPoint
-import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.model.TideInfoData
 import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import com.example.dive_app.domain.viewmodel.EmergencyEvent
-import com.example.dive_app.ui.screen.weather.AirQualityScreen
-import com.example.dive_app.ui.screen.location.FishingDetailScreen
-import com.example.dive_app.ui.screen.health.HealthScreen
-import com.example.dive_app.ui.screen.HomeScreen
-import com.example.dive_app.ui.screen.location.LocationScreen
-import com.example.dive_app.ui.screen.tide.TideWatchScreen
-import com.example.dive_app.ui.screen.weather.SeaWeatherScreen
-import com.example.dive_app.ui.screen.tide.TideDetailPage
-import com.example.dive_app.ui.screen.weather.WeatherMenuScreen
+import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
+import com.example.dive_app.ui.screen.HomeScreen
 import com.example.dive_app.ui.screen.alert.EmergencyScreen
+
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -41,6 +37,7 @@ fun MainApp(
     MyApplicationTheme {
         val navController = rememberNavController()
 
+        // 응급 이벤트 발생 시 Emergency 화면으로 단일 네비게이션
         LaunchedEffect(Unit) {
             healthVM.emergencyEvent
                 .distinctUntilChanged()
@@ -57,46 +54,57 @@ fun MainApp(
                 }
         }
 
-        NavHost(
-            navController = navController,
-            startDestination = "home"
-        ) {
-            composable("home") {
-                HomeScreen(navController)
-            }
-            composable("location") {
-                LocationScreen(navController, fishingVM, locationVM)
-            }
-            composable("fishingDetail") {
-                val point = navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.get<FishingPoint>("fishingPoint")
-                if (point != null) {
-                    FishingDetailScreen(point)
+        Scaffold { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                NavHost(
+                    navController = navController,
+                    startDestination = "home"
+                ) {
+                    composable("home") {
+                        HomeScreen(navController)
+                    }
+                    composable("location") {
+                        LocationScreen(navController, fishingVM, locationVM)
+                    }
+                    composable("fishingDetail") {
+                        val point = navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.get<FishingPoint>("fishingPoint")
+                        if (point != null) {
+                            FishingDetailScreen(point)
+                        }
+                    }
+                    composable("tide") {
+                        TideWatchScreen(navController = navController, tideVM = tideVM)
+                    }
+                    composable("tideDetail") {
+                        val tide = navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.get<TideInfoData>("selectedTide")
+                        if (tide != null) {
+                            TideDetailPage(tide, navController)
+                        }
+                    }
+                    composable("emergency") {
+                        EmergencyScreen(navController)
+                    }
+                    composable("weather") {
+                        WeatherScreen(navController = navController, weatherVM)
+                    }
+                    composable("weatherMenu") {
+                        WeatherMenuScreen(navController)
+                    }
+                    composable("sea_weather") {
+                        SeaWeatherScreen(navController, weatherVM)
+                    }
+                    composable("air_quality") {
+                        AirQualityScreen(navController, airQualityVM)
+                    }
+                    composable("health") {
+                        HealthScreen(healthVM)
+                    }
                 }
             }
-            composable("tide") {
-                TideWatchScreen(navController = navController, tideVM = tideVM)
-            }
-            composable("tideDetail") {
-                val tide = navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.get<TideInfoData>("selectedTide")
-
-                if (tide != null) {
-                    TideDetailPage(tide, navController)
-                }
-            }
-            composable("emergency") {
-                EmergencyScreen(navController)
-            }
-            composable("weather") {
-                WeatherScreen(navController = navController, weatherVM)
-            }
-            composable("weatherMenu") { WeatherMenuScreen(navController) }
-            composable("sea_weather") { SeaWeatherScreen(navController, weatherVM) }
-            composable("air_quality") { AirQualityScreen(navController, airQualityVM) }
-            composable("health") { HealthScreen(healthVM) }
         }
     }
 }

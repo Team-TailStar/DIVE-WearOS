@@ -1,4 +1,8 @@
 package com.example.dive_app.ui.screen
+import androidx.compose.material.icons.filled.WbSunny   // 해 아이콘
+import androidx.compose.material.icons.filled.DarkMode // 달 아이콘
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 
 // ── Compose / Wear / Foundation
 import androidx.compose.foundation.Canvas
@@ -42,27 +46,24 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.dive_app.MainActivity
 
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.rememberTextMeasurer
+import java.util.regex.Pattern
+import androidx.compose.ui.zIndex
+import androidx.compose.material.icons.filled.WbSunny   // 해 아이콘
+import androidx.compose.material.icons.filled.DarkMode // 달 아이콘
 
-fun TideInfoData.toCallouts(): List<Pair<LocalTime, Color>> {
-    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+/* ---------- 유틸/포맷 ---------- */
 
-    return listOfNotNull(
-        jowi1.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Blue },
-        jowi2.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Red },
-        jowi3.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Blue },
-        jowi4.takeIf { it.isNotBlank() }?.let { LocalTime.parse(it.split(" ")[0], formatter) to Color.Red },
-    )
-}
+private val TIME_REGEX: Pattern = Pattern.compile("(\\d{1,2}:\\d{2})")
+private val FLEX_FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm")
 
 fun parsePThisDate(raw: String): LocalDate? {
-    val parts = raw.split("-")
-    return if (parts.size >= 3) {
-        val year = parts[0].toInt()
-        val month = parts[1].toInt()
-        val day = parts[2].toInt()
-        LocalDate.of(year, month, day)
-    } else null
+    val p = raw.split("-")
+    return runCatching { LocalDate.of(p[0].toInt(), p[1].toInt(), p[2].toInt()) }.getOrNull()
 }
+
 
 /* ---------- 데이터 ---------- */
 
@@ -74,33 +75,7 @@ data class CalloutItem(
     val text: String,
     val color: Color
 )
-fun TideInfoData.toCalloutItems(): List<CalloutItem> {
-    val rows = listOf(jowi1, jowi2, jowi3, jowi4).filter { it.isNotBlank() }
-    return rows.mapNotNull { raw ->
-        val parts = raw.split(" ")
-        val timeStr = parts.getOrNull(0) ?: return@mapNotNull null
-        val typeStr = parts.getOrNull(2) ?: ""
-        val t = try { LocalTime.parse(timeStr) } catch (_: Exception) { null } ?: return@mapNotNull null
 
-        val isHigh = typeStr.startsWith("▲")
-        val isLow  = typeStr.startsWith("▼")
-        val symbol = when {
-            isHigh -> "▲"
-            isLow  -> "▼"
-            else   -> "•"
-        }
-        val c = when {
-            isHigh -> Color(0xFF1E88E5) // 파랑(만조)
-            isLow  -> Color(0xFFE53935) // 빨강(간조)
-            else   -> Color(0xFFB0BEC5)
-        }
-        CalloutItem(
-            time = t,
-            text = "$symbol ${"%02d:%02d".format(t.hour, t.minute)}",
-            color = c
-        )
-    }
-}
 @Immutable
 data class TideMarker(
     val time: LocalTime,
@@ -114,35 +89,99 @@ data class TideSegment(
     val end: LocalTime,
     val color: Color
 )
+// ── SUN / MOON 파싱 & 파생들 ───────────────────────────────────────────────
+private fun parseRiseSet(raw: String): Pair<LocalTime?, LocalTime?> {
+    if (raw.isBlank() || !raw.contains("/")) return null to null
+    val p = raw.split("/")
+    val rise = runCatching { LocalTime.parse(p.getOrNull(0)?.trim(), FLEX_FMT) }.getOrNull()
+    val set  = runCatching { LocalTime.parse(p.getOrNull(1)?.trim(), FLEX_FMT) }.getOrNull()
+    return rise to set
+}
 
-// TideInfoData → TideMarker 변환
-fun TideInfoData.toMarkers(): List<TideMarker> {
-    val list = listOf(jowi1, jowi2, jowi3, jowi4).filter { it.isNotBlank() }
+fun TideInfoData.sunTimes(): Pair<LocalTime?, LocalTime?> = parseRiseSet(pSun)
+fun TideInfoData.moonTimes(): Pair<LocalTime?, LocalTime?> = parseRiseSet(pMoon)
 
-    return list.mapNotNull { raw ->
-        // 예: "02:25 (33) ▼-1"
-        val parts = raw.split(" ")
-        val timeStr = parts.getOrNull(0) ?: return@mapNotNull null
-        val typeStr = parts.getOrNull(2) ?: ""
+/** 일/월 출몰의 ‘라벨’ 아이템 (예: "일출 05:56") */
+fun TideInfoData.toSunMoonCallouts(): List<CalloutItem> {
+    val (sr, ss) = sunTimes()
+    val (mr, ms) = moonTimes()
+    val sunColor  = Color(0xFFB0BEC5) // 일출·일몰 (기존 레전드 색)
+    val moonColor = Color(0xFF9FA8DA) // 월출·월몰
 
-        val time = try { LocalTime.parse(timeStr) } catch (e: Exception) { null }
-        time?.let {
-            TideMarker(
-                time = it,
-                type = when {
-                    typeStr.startsWith("▲") -> TideType.HIGH
-                    typeStr.startsWith("▼") -> TideType.LOW
-                    else -> TideType.FLOW
-                },
-                color = when {
-                    typeStr.startsWith("▲") -> Color(0xFF1E88E5) // 파랑 (만조)
-                    typeStr.startsWith("▼") -> Color(0xFFE53935) // 빨강 (간조)
-                    else -> Color.Gray
-                }
-            )
-        }
+    return buildList {
+        sr?.let { add(CalloutItem(it, "일출 ${FLEX_FMT.format(it)}", sunColor)) }
+        ss?.let { add(CalloutItem(it, "일몰 ${FLEX_FMT.format(it)}", sunColor)) }
+        mr?.let { add(CalloutItem(it, "월출 ${FLEX_FMT.format(it)}", moonColor)) }
+        ms?.let { add(CalloutItem(it, "월몰 ${FLEX_FMT.format(it)}", moonColor)) }
     }
 }
+
+/** 출몰 시각에 ‘점’ 마커 찍기 */
+fun TideInfoData.toSunMoonMarkers(): List<TideMarker> {
+    val (sr, ss) = sunTimes()
+    val (mr, ms) = moonTimes()
+    return buildList {
+        val sunColor  = Color(0xFFB0BEC5)
+        val moonColor = Color(0xFF9FA8DA)
+        sr?.let { add(TideMarker(it, TideType.FLOW, sunColor)) }
+        ss?.let { add(TideMarker(it, TideType.FLOW, sunColor)) }
+        mr?.let { add(TideMarker(it, TideType.FLOW, moonColor)) }
+        ms?.let { add(TideMarker(it, TideType.FLOW, moonColor)) }
+    }
+}
+
+/** 낮/달 떠있는 시간대를 링에 ‘세그먼트’로 칠하기 */
+fun TideInfoData.toSunMoonSegments(): List<TideSegment> {
+    val (sr, ss) = sunTimes()
+    val (mr, ms) = moonTimes()
+    val segs = mutableListOf<TideSegment>()
+    if (sr != null && ss != null) {
+        segs += TideSegment(sr, ss, Color(0xFFB0BEC5).copy(alpha = 0.28f))
+    }
+    if (mr != null && ms != null) {
+        segs += TideSegment(mr, ms, Color(0xFF9FA8DA).copy(alpha = 0.22f))
+    }
+    return segs
+}
+
+/* ---------- TideInfoData 파생 ---------- */
+
+// jowi* 또는 pTime* 중 채워진 쪽을 사용
+// 공통 추출
+private fun TideInfoData.tideStrings(): List<String> = listOf(
+    pTime1.ifBlank { jowi1 },
+    pTime2.ifBlank { jowi2 },
+    pTime3.ifBlank { jowi3 },
+    pTime4.ifBlank { jowi4 },
+).filter { it.isNotBlank() }
+// 견고한 파서 (1~2자리 시, 어디에 있어도 hh:mm 찾음)
+private val TIME_RE = Regex("(\\d{1,2}:\\d{2})")
+
+fun TideInfoData.toCalloutItems(): List<CalloutItem> =
+    tideStrings().mapNotNull { raw ->
+        val timeStr = TIME_RE.find(raw)?.groupValues?.get(1) ?: return@mapNotNull null
+        val t = runCatching { LocalTime.parse(timeStr, java.time.format.DateTimeFormatter.ofPattern("H:mm")) }.getOrNull()
+            ?: return@mapNotNull null
+        val isHigh = '▲' in raw
+        val isLow  = '▼' in raw
+        val symbol = when { isHigh -> "▲"; isLow -> "▼"; else -> "•" }
+        val color  = when { isHigh -> Color(0xFF1E88E5); isLow -> Color(0xFFE53935); else -> Color(0xFFB0BEC5) }
+        CalloutItem(time = t, text = "$symbol $timeStr", color = color)
+    }
+
+fun TideInfoData.toMarkers(): List<TideMarker> =
+    tideStrings().mapNotNull { raw ->
+        val timeStr = TIME_RE.find(raw)?.groupValues?.get(1) ?: return@mapNotNull null
+        val t = runCatching { LocalTime.parse(timeStr, java.time.format.DateTimeFormatter.ofPattern("H:mm")) }.getOrNull()
+            ?: return@mapNotNull null
+        val isHigh = '▲' in raw
+        val isLow  = '▼' in raw
+        TideMarker(
+            time = t,
+            type = when { isHigh -> TideType.HIGH; isLow -> TideType.LOW; else -> TideType.FLOW },
+            color = when { isHigh -> Color(0xFF1E88E5); isLow -> Color(0xFFE53935); else -> Color.Gray }
+        )
+    }
 
 /* ---------- 화면 루트 ---------- */
 @Composable
@@ -165,6 +204,9 @@ fun TideWatchScreen(
     var currentIndex by remember { mutableStateOf(0) }
     val today = tideState.tideList.getOrNull(currentIndex)
 
+    LaunchedEffect(today) {
+        android.util.Log.d("TideWatch", "callouts=${today?.toCalloutItems()?.map { it.text }}")
+    }
     LaunchedEffect(Unit) {
         (context as MainActivity).requestTide()
         while (true) {
@@ -173,25 +215,33 @@ fun TideWatchScreen(
         }
     }
 
-    // ⏮️ tideList에 들어있는 날짜 리스트
-    val availableDates = tideState.tideList.mapNotNull { runCatching { LocalDate.parse(it.pThisDate) }.getOrNull() }
-
     // 변환된 데이터
-    val markers = today?.toMarkers() ?: emptyList()
-    val segments = emptyList<TideSegment>()
+    val baseMarkers = today?.toMarkers() ?: emptyList()
+    val sunMoonMarkers = today?.toSunMoonMarkers() ?: emptyList()
+    val markers = baseMarkers + sunMoonMarkers
+
+    val segments = today?.toSunMoonSegments() ?: emptyList()
+    val density = LocalDensity.current
+    val navigateThresholdPx = with(density) { 48.dp.toPx() } // 약 48dp
+    var dragAccum by remember { mutableStateOf(0f) }
 
     val dragModifier = Modifier.pointerInput(today) {
-        detectVerticalDragGestures { _, dragAmount ->
-            if (dragAmount > 50 && today != null) {
-                navController?.currentBackStackEntry
-                    ?.savedStateHandle
-                    ?.set("selectedTide", today)
-                navController?.navigate("tideDetail")
+        detectVerticalDragGestures(
+            onDragStart = { dragAccum = 0f },
+            onVerticalDrag = { _, dy -> dragAccum += dy }, // 아래로 +, 위로 -
+            onDragEnd = {
+                if (dragAccum > navigateThresholdPx && today != null) {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedTide", today)
+                    navController.navigate("tideDetail")
+                }
+                dragAccum = 0f
             }
-        }
+        )
     }
 
-    SwipeToDismissBox(onDismissed = { navController?.popBackStack() }) {
+    SwipeToDismissBox(onDismissed = { navController.popBackStack() }) {
         Scaffold(
             vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
         ) {
@@ -199,111 +249,146 @@ fun TideWatchScreen(
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .then(dragModifier)
+                    .then(dragModifier) // ← 이 dragModifier는 위에서 방금 만든 '누적' 버전
             ) {
                 val density = LocalDensity.current
-                val minSidePx = with(density) {
-                    if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx()
-                }
+
+                val minSidePx = with(density) { if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx() }
                 val dialDp = with(density) { (minSidePx * 0.54f).toDp() }
                 val ringRadiusDp = dialDp / 2
-                val outerLabelRadius = ringRadiusDp + 8.dp
-
+                // ▶ 라벨을 더 바깥으로
+                val outerLabelRadius = ringRadiusDp + 14.dp
+                // --- 레인(겹침 방지) 계산 ---
                 Box(Modifier.fillMaxSize()) {
 
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "next day",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 8.dp)
-                            .size(18.dp)
-                            .clickable {
-                                if (currentIndex < tideState.tideList.lastIndex) {
-                                    currentIndex++
-                                    tideState.tideList.getOrNull(currentIndex)?.let { next ->
-                                        currentDate = parsePThisDate(next.pThisDate) ?: currentDate
-                                    }
-                                }
-                            }
-                    )
+//                    Icon(
+//                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+//                        contentDescription = "next day",
+//                        tint = Color.White,
+//                        modifier = Modifier
+//                            .align(Alignment.CenterEnd)
+//                            .padding(end = 8.dp)
+//                            .size(18.dp)
+//                            .clickable {
+//                                if (currentIndex < tideState.tideList.lastIndex) {
+//                                    currentIndex++
+//                                    tideState.tideList.getOrNull(currentIndex)?.let { next ->
+//                                        currentDate = parsePThisDate(next.pThisDate) ?: currentDate
+//                                    }
+//                                }
+//                            }
+//                    )
+//
+//                    Icon(
+//                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+//                        contentDescription = "prev day",
+//                        tint = Color.White,
+//                        modifier = Modifier
+//                            .align(Alignment.CenterStart)
+//                            .padding(start = 8.dp)
+//                            .size(18.dp)
+//                            .clickable {
+//                                if (currentIndex > 0) {
+//                                    currentIndex--
+//                                    tideState.tideList.getOrNull(currentIndex)?.let { prev ->
+//                                        currentDate = parsePThisDate(prev.pThisDate) ?: currentDate
+//                                    }
+//                                }
+//                            }
+//                    )
 
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = "prev day",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 8.dp)
-                            .size(18.dp)
-                            .clickable {
-                                if (currentIndex > 0) {
-                                    currentIndex--
-                                    tideState.tideList.getOrNull(currentIndex)?.let { prev ->
-                                        currentDate = parsePThisDate(prev.pThisDate) ?: currentDate
-                                    }
-                                }
-                            }
-                    )
 
-                    // ⬇️ 아래 화살표 (상세페이지 이동)
-                    Icon(
-                        imageVector = Icons.Default.ArrowDownward,
-                        contentDescription = "detail page",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp)
-                            .size(22.dp)
-                            .clickable {
-                                today?.let {
-                                    navController?.currentBackStackEntry
-                                        ?.savedStateHandle
-                                        ?.set("selectedTide", it)
-                                    navController?.navigate("tideDetail")
-                                }
-                            }
-                    )
+//                    Icon(
+//                        imageVector = Icons.Default.ArrowDownward,
+//                        contentDescription = "detail page",
+//                        tint = Color.White,
+//                        modifier = Modifier
+//                            .align(Alignment.BottomCenter)
+//                            .padding(bottom = 16.dp)
+//                            .size(22.dp)
+//                            .clickable {
+//                                today?.let {
+//                                    navController.currentBackStackEntry
+//                                        ?.savedStateHandle
+//                                        ?.set("selectedTide", it)
+//                                    navController.navigate("tideDetail")
+//                                }
+//                            }
+//                    )
 
-                    // 다이얼
                     TideDial(
                         diameter = dialDp,
                         centerTime = centerTime,
                         date = currentDate,
                         segments = segments,
                         markers = markers,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
+                        onPrevDay = {
+                            if (currentIndex > 0) {
+                                currentIndex--
+                                tideState.tideList.getOrNull(currentIndex)?.let { prev ->
+                                    currentDate = parsePThisDate(prev.pThisDate) ?: currentDate
+                                }
+                            }
+                        },
+                        onNextDay = {
+                            if (currentIndex < tideState.tideList.lastIndex) {
+                                currentIndex++
+                                tideState.tideList.getOrNull(currentIndex)?.let { next ->
+                                    currentDate = parsePThisDate(next.pThisDate) ?: currentDate
+                                }
+                            }
+                        },
+                        onInfoClick = { showLegend = true }
                     )
 
-                    // 바깥 라벨
+
+                    val anchorHours = remember { listOf(0, 3, 6, 9, 12, 15, 18, 21) }
+                    val hourItems = remember(anchorHours) {
+                        anchorHours.map { h ->
+                            CalloutItem(
+                                time  = LocalTime.of(h % 24, 0),
+                                text  = h.toString(),            // 순수 숫자만
+                                color = Color(0xFFB0BEC5)
+                            )
+                        }
+                    }
                     SideCallouts(
-                        items = today?.toCalloutItems() ?: emptyList(),
+                        items = hourItems,
+                        radius = ringRadiusDp +7.dp,
+                        modifier = Modifier.align(Alignment.Center),
+                        labelPadDp = 0.dp,
+                        nudgeDp = 0.dp,
+                        numbersOnly = true,                      // 점(•) 없애기
+                        fontSizeSp = 6                        // 더 작게
+                    )
+
+                    // 바깥쪽 라벨: 조석 + 일/월 출몰
+                    val calloutItems = remember(today) {
+                        (today?.toCalloutItems().orEmpty()) + (today?.toSunMoonCallouts().orEmpty())
+                    }
+                    SideCallouts(
+                        items = calloutItems,
                         radius = outerLabelRadius,
                         modifier = Modifier.align(Alignment.Center),
-                        labelPadDp = 6.dp,
-                        nudgeDp = 2.dp
+                        labelPadDp = 9.dp,
+                        nudgeDp = 2.dp,
+                        showSunMoonIcons = true,    // ⬅ 아이콘 사용 ON
+                        iconSizeDp = 10.dp          // ⬅ 필요시 8~12dp 사이로 미세조정
                     )
 
-                    // 맨 위 중앙 느낌표
-                    InfoCircle(
-                        onClick = { showLegend = true },
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 8.dp)
-                    )
+
+//                    // 맨 위 중앙 느낌표
+//                    InfoCircle(
+//                        onClick = { showLegend = true },
+//                        modifier = Modifier
+//                            .align(Alignment.TopCenter)
+//                            .padding(top = 8.dp)
+//                    )
 
                     // 오버레이 (설명창)
                     if (showLegend) {
-                        LegendOverlay(
-                            onDismiss = { showLegend = false },
-                            items = listOf(
-                                LegendItem("만조", Color(0xFF1E88E5), "만조 시각/구간 표시"),
-                                LegendItem("간조", Color(0xFFE53935), "간조 시각/구간 표시"),
-                                LegendItem("일출·일몰", Color(0xFFB0BEC5), "일출/일몰 관련 표시"),
-                                LegendItem("월출·월몰", Color(0xFF9FA8DA), "월출/월몰 관련 표시"),
-                            )
-                        )
+                        LegendOverlay(onDismiss = { showLegend = false })
                     }
                 }
             }
@@ -319,10 +404,13 @@ private fun TideDial(
     date: LocalDate,
     segments: List<TideSegment>,
     markers: List<TideMarker>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPrevDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onInfoClick: () -> Unit
 ) {
     val ringW = 12f
-    val tickW = 2f
+    val tickW = 2f   // ✅ 기본 눈금 굵기 복구
 
     Box(modifier.size(diameter), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -331,20 +419,25 @@ private fun TideDial(
             val rOuter = size.minDimension / 2f
             val rRing = rOuter - ringW
 
-            // 24시간 눈금
+            // ✅ 24시간 눈금 (기존 스타일: 3시간마다만 살짝 길고 굵게)
             repeat(24) { h ->
                 val a = hourToAngleRad(h.toFloat())
-                val r1 = rRing - 14f
-                val r2 = rRing + 14f
+                val is3h = (h % 3 == 0)
+
+                val r1 = rRing - if (is3h) 16f else 14f
+                val r2 = rRing + if (is3h) 16f else 14f
+
                 val x1 = cx + r1 * cos(a)
                 val y1 = cy + r1 * sin(a)
                 val x2 = cx + r2 * cos(a)
                 val y2 = cy + r2 * sin(a)
+
                 drawLine(
-                    color = if (h % 3 == 0) Color(0xFF7A7A7A) else Color(0xFF3A3A3A),
+                    color = if (is3h) Color(0xFF7A7A7A) else Color(0xFF3A3A3A),
                     start = Offset(x1, y1),
                     end = Offset(x2, y2),
-                    strokeWidth = if (h % 3 == 0) 3f else tickW
+                    strokeWidth = if (is3h) 3f else tickW,
+                    cap = StrokeCap.Butt
                 )
             }
 
@@ -383,64 +476,274 @@ private fun TideDial(
             }
         }
 
-        // 중앙 날짜 + 현재 시간
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "%d.%d.%d".format(date.year, date.monthValue, date.dayOfMonth),
-                color = Color.White,
-                style = MaterialTheme.typography.caption1,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = "prev day",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(14.dp)           // 아이콘 작게
+                        .clickable { onPrevDay() }
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = "%d.%d.%d".format(date.year, date.monthValue, date.dayOfMonth),
+                    color = Color.White,
+                    // 기존 caption1 → 더 작게
+                    style = MaterialTheme.typography.caption2.copy(fontSize = 10.sp),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "next day",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clickable { onNextDay() }
+                )
+            }
+
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = "%d:%02d".format(centerTime.hour, centerTime.minute),
                 color = Color.White,
                 style = MaterialTheme.typography.title2,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .size(12.dp)                              // 아주 작게
+                    .background(Color(0xFF2A2A2A), RoundedCornerShape(50))
+                    .clickable { onInfoClick() },             // 눌렀을 때 기존 오버레이 표시
+                contentAlignment = Alignment.Center
+            ) {
+                Text("!", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            }
         }
+
     }
 }
 
 /* ---------- 바깥 라벨 (시간 작은 표기) ---------- */
-
+@OptIn(ExperimentalTextApi::class)
 @Composable
 private fun SideCallouts(
     items: List<CalloutItem>,
-    radius: Dp,                 // 다이얼 링 바깥 반지름(Dp)
+    radius: Dp,
     modifier: Modifier = Modifier,
-    labelPadDp: Dp = 6.dp,      // 링에서 라벨까지 간격
-    nudgeDp: Dp = 2.dp          // 미세 보정(위/아래 살짝 밀기)
-) {
+    labelPadDp: Dp = 10.dp,
+    nudgeDp: Dp = 2.dp,
+    numbersOnly: Boolean = false,
+    fontSizeSp: Int? = null,
+    showSunMoonIcons: Boolean = false,
+    iconSizeDp: Dp = 10.dp,
+    avoidOverlap: Boolean = true,     // 겹침 방지 ON/OFF
+    laneGapDp: Dp = 8.dp,             // 레인 간 반지름 간격
+    minSepDeg: Float = 12f,          // 같은 레인에서 허용할 최소 각도 간격
+    tangentNudgeDp: Dp = 6.dp
+)
+
+{
     val density = LocalDensity.current
-    val rOuterPx = with(density) { (radius + labelPadDp).toPx() }
-    val nudgePx  = with(density) { nudgeDp.toPx() }
+    val textMeasurer = rememberTextMeasurer()
 
-    Box(modifier = modifier.size((radius + labelPadDp + 24.dp) * 2)) {
-        items.forEach { item ->
-            val angleRad = timeToAngleRad(item.time)    // -90° 기준 라디안
-            val cosA = kotlin.math.cos(angleRad)
-            val sinA = kotlin.math.sin(angleRad)
+    val baseStyle = MaterialTheme.typography.caption2.copy(
+        fontSize = 10.sp,
+        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+    )
+    // --- 레인(겹침 방지) 계산 ---
+    val laneOf = remember(items, avoidOverlap, minSepDeg) {
+        val result = IntArray(items.size) { 0 }
+        if (!avoidOverlap || items.isEmpty()) return@remember result
 
-            // 라벨 중앙이 놓일 좌표 (Box 중앙을 (0,0)로 가정)
-            val centerX = rOuterPx * cosA
-            val centerY = rOuterPx * sinA
+        data class ToPlace(val idx: Int, val angleDeg: Float)
+        data class Lane(var lastDeg: Float = -9999f)
 
-            // 텍스트 폭/높이를 모르면 대략 절반(-40, -10) 정도 센터 보정
-            // (Watch 원 안 튀지 않게 조정값을 좌우/상하 다르게)
-            val approxHalfW = 40
-            val approxHalfH = 10
+        val toPlace = items.mapIndexed { i, it ->
+            val deg = Math.toDegrees(timeToAngleRad(it.time).toDouble()).toFloat()
+            ToPlace(i, deg)
+        }.sortedBy { it.angleDeg }
 
-            val offsetX = (centerX - approxHalfW).toInt()
-            val offsetY = (centerY - approxHalfH + nudgePx * if (sinA > 0) 1 else -1).toInt()
+        val lanes = mutableListOf<Lane>()
+        toPlace.forEach { p ->
+            var placed = false
+            for (laneIdx in lanes.indices) {
+                val gap = kotlin.math.abs(p.angleDeg - lanes[laneIdx].lastDeg)
+                if (gap >= minSepDeg) {
+                    result[p.idx] = laneIdx
+                    lanes[laneIdx].lastDeg = p.angleDeg
+                    placed = true
+                    break
+                }
+            }
+            if (!placed) {
+                val newIdx = lanes.size
+                result[p.idx] = newIdx
+                lanes += Lane(p.angleDeg)
+            }
+        }
+        result
+    }
 
-            Text(
-                text = item.text,
-                color = item.color,
-                style = MaterialTheme.typography.caption2,
-                modifier = Modifier
-                    .absoluteOffset(x = offsetX.dp, y = offsetY.dp)
+    val timeStyle  = if (fontSizeSp != null) baseStyle.copy(fontSize = fontSizeSp.sp) else baseStyle
+    val symbolStyle = timeStyle  // 동일 스타일 사용
+
+    data class LayoutPair(
+        val symW: Float, val symH: Float,
+        val timeW: Float, val timeH: Float
+    )
+
+    // ---- 추가: 도우미 ----
+    fun isSunMoonLabel(s: String): Boolean =
+        s.startsWith("일출") || s.startsWith("일몰") || s.startsWith("월출") || s.startsWith("월몰")
+
+    fun split(item: CalloutItem): Pair<String, String> {
+        if (numbersOnly) return "" to item.text
+        // 출몰 라벨이면 아이콘으로 처리 → 기호는 "" 로 비우고, 시간만 반환
+        if (showSunMoonIcons && (
+                    item.text.startsWith("일출") || item.text.startsWith("일몰") ||
+                            item.text.startsWith("월출") || item.text.startsWith("월몰")
+                    )
+        ) {
+            val timeStr = TIME_RE.find(item.text)?.groupValues?.get(1) ?: item.text
+            return "" to timeStr
+        }
+        // 기존 기호(▲▼•)
+        val first = item.text.firstOrNull()
+        val hasSymbol = first == '▲' || first == '▼' || first == '•'
+        val symbol = if (hasSymbol) first.toString() else ""
+        val timeStr = if (hasSymbol) item.text.drop(1).trim() else item.text
+        return symbol to timeStr
+    }
+
+
+// ---- 측정 로직: 출몰아이콘이면 아이콘 크기로 심볼 W/H 설정 ----
+    val measured = remember(items, timeStyle, symbolStyle, numbersOnly, showSunMoonIcons, iconSizeDp) {
+        val iconPx = with(density) { iconSizeDp.toPx() }
+        items.map { item ->
+            val (sym, timeStr) = split(item)
+            val isIcon = showSunMoonIcons && (
+                    item.text.startsWith("일출") || item.text.startsWith("일몰") ||
+                            item.text.startsWith("월출") || item.text.startsWith("월몰")
+                    )
+            val symW = if (isIcon) iconPx else if (sym.isEmpty()) 0f else
+                textMeasurer.measure(AnnotatedString(sym), style = symbolStyle).size.width.toFloat()
+            val symH = if (isIcon) iconPx else if (sym.isEmpty()) 0f else
+                textMeasurer.measure(AnnotatedString(sym), style = symbolStyle).size.height.toFloat()
+            val timeLayout = textMeasurer.measure(AnnotatedString(timeStr), style = timeStyle)
+            LayoutPair(
+                symW = symW,
+                symH = symH,
+                timeW = timeLayout.size.width.toFloat(),
+                timeH = timeLayout.size.height.toFloat()
             )
         }
+    }
+
+
+
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val centerX = with(density) { (maxWidth / 2).toPx() }
+        val centerY = with(density) { (maxHeight / 2).toPx() }
+
+        val rPx = with(density) { (radius + labelPadDp).toPx() }
+        val nudgePx = with(density) { nudgeDp.toPx() }
+
+        items.forEachIndexed { i, item ->
+            // 1) 라벨 텍스트 분해 (기호/시간)
+            val (sym, timeStr) = split(item)
+
+            // 2) 각도/좌표 계산
+            val a = timeToAngleRad(item.time)
+            val cosA = kotlin.math.cos(a)
+            val sinA = kotlin.math.sin(a)
+
+// 레인(겹침 방지) 반영
+            val laneIdx = if (avoidOverlap) laneOf[i] else 0
+            val laneOffsetPx = with(density) { (laneGapDp * laneIdx).toPx() }
+            val rLane = rPx + laneOffsetPx
+
+// 기본(반지름) 위치
+            val baseCx = centerX + rLane * cosA
+            val baseCy = centerY + rLane * sinA + if (sinA > 0) nudgePx else -nudgePx
+
+// 🔸추가: 접선(tangent) 방향으로 laneIdx만큼 살짝 이동
+//  - 각도에 대한 단위 접선 벡터 = (-sin, cos)
+//  - 레인 0은 0, 레인 1부터는 좌우로 번갈아가며 밀어 겹침 완화
+            val sign = if (laneIdx % 2 == 0) -1f else 1f
+            val tNudge = with(density) { (tangentNudgeDp * laneIdx).toPx() } * sign
+            val tx = (-sinA * tNudge).toFloat()
+            val ty = ( cosA * tNudge).toFloat()
+
+// 최종 중심점
+            val cx = baseCx + tx
+            val cy = baseCy + ty
+
+            // 3) 측정값 꺼내기
+            val m = measured[i]
+
+            // 4) 아이콘 여부 판단 + 간격
+            val isIcon = showSunMoonIcons && (
+                    item.text.startsWith("일출") || item.text.startsWith("일몰") ||
+                            item.text.startsWith("월출") || item.text.startsWith("월몰")
+                    )
+            val gapPx = if (!isIcon && sym.isEmpty()) 0f else with(density) { 2.dp.toPx() }
+
+            // 5) 배치 계산
+            val totalW = m.symW + gapPx + m.timeW
+            val maxH = maxOf(m.symH, m.timeH)
+            val anchorX = cx - totalW / 2f
+            val baselineY = cy + (maxH / 2f)
+
+            // 6) 심볼(아이콘/기호) 그리기
+            if (isIcon) {
+                val symX = anchorX
+                val symY = baselineY - m.symH
+                val img = if (item.text.startsWith("월")) Icons.Filled.DarkMode else Icons.Filled.WbSunny
+
+                Icon(
+                    imageVector = img,
+                    contentDescription = null,
+                    tint = item.color,
+                    modifier = Modifier
+                        .absoluteOffset(
+                            x = with(density) { symX.toDp() },
+                            y = with(density) { symY.toDp() }
+                        )
+                        .size(iconSizeDp)
+                )
+            } else if (sym.isNotEmpty()) {
+                val symX = anchorX
+                val symY = baselineY - m.symH
+                Text(
+                    text = sym,
+                    color = item.color,
+                    style = symbolStyle,
+                    modifier = Modifier.absoluteOffset(
+                        x = with(density) { symX.toDp() },
+                        y = with(density) { symY.toDp() }
+                    )
+                )
+            }
+
+            // 7) 시간 텍스트
+            val timeX = anchorX + m.symW + gapPx
+            val timeY = baselineY - m.timeH
+            Text(
+                text = timeStr,
+                color = item.color,
+                style = timeStyle,
+                modifier = Modifier.absoluteOffset(
+                    x = with(density) { timeX.toDp() },
+                    y = with(density) { timeY.toDp() }
+                )
+            )
+        }
+
     }
 }
 
@@ -454,7 +757,7 @@ private fun InfoCircle(
     Box(
         modifier = modifier
             .size(24.dp)
-            .background(Color(0xFF424242), shape = RoundedCornerShape(50))
+            .background(Color(0xFF2A2A2A), shape = RoundedCornerShape(50))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -469,80 +772,88 @@ private fun InfoCircle(
 
 /* ---------- 오버레이(설명창) ---------- */
 
-@Immutable
-data class LegendItem(val title: String, val color: Color, val desc: String)
-
 @Composable
-private fun LegendOverlay(
-    onDismiss: () -> Unit,
-    items: List<LegendItem>,
-) {
+fun LegendOverlay(onDismiss: () -> Unit) {
     Box(
-        Modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .clickable { onDismiss() }
+            .background(Color.Black.copy(alpha = 0.4f)) // 반투명 배경
+            .clickable(onClick = onDismiss),            // 바깥 클릭 시 닫기
+        contentAlignment = Alignment.Center
     ) {
-        Card(
-            onClick = {},
-            backgroundPainter = CardDefaults.cardBackgroundPainter(
-                startBackgroundColor = Color(0xFF2B2B2B),
-                endBackgroundColor = Color(0xFF2B2B2B)
-            ),
+        // 안쪽 네모
+        Box(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = 12.dp)
+                .width(160.dp)
+                .wrapContentHeight()
+                .background(Color(0xFF262626), RoundedCornerShape(24.dp))
+                .padding(12.dp)
+                .clickable(enabled = false) {} // 안쪽은 클릭 이벤트 무시
         ) {
             Column(
-                Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.Start
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    "표시 설명",
-                    color = Color.White,
-                    style = MaterialTheme.typography.title3,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(6.dp))
-                items.forEach { itx ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Box(
-                            Modifier
-                                .size(10.dp)
-                                .background(itx.color, shape = RoundedCornerShape(50))
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                itx.title,
-                                color = Color.White,
-                                style = MaterialTheme.typography.caption1,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                itx.desc,
-                                color = Color(0xFFBDBDBD),
-                                style = MaterialTheme.typography.caption2
-                            )
-                        }
-                    }
+                Text("표시 설명", color = Color.White, fontSize = 12.sp)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("▲", color = Color(0xFF1E88E5), fontSize = 12.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("만조", color = Color.White, fontSize = 11.sp)
                 }
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("닫기", color = Color.Black)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("▼", color = Color(0xFFE53935), fontSize = 12.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("간조", color = Color.White, fontSize = 11.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.WbSunny,
+                        contentDescription = "일출·일몰",
+                        tint = Color(0xFFB0BEC5),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("일출·일몰", color = Color.White, fontSize = 11.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.DarkMode,
+                        contentDescription = "월출·월몰",
+                        tint = Color(0xFF9FA8DA),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("월출·월몰", color = Color.White, fontSize = 11.sp)
                 }
             }
         }
     }
 }
 
-/* ---------- 유틸 ---------- */
+
+    @Composable
+private fun LegendRow(color: Color, title: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .background(color, CircleShape)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            title,
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/* ---------- 각도/시간 변환 ---------- */
 
 private fun hourToAngleRad(hour: Float): Float {
     val deg = (hour / 24f) * 360f - 90f

@@ -31,7 +31,7 @@ import com.google.android.gms.wearable.MessageEvent
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import kotlin.getValue
-import com.example.dive_app.ui.MainApp
+
 /**
  * Wear OS 앱의 메인 Activity
  * - 심박수 센서 데이터 수집

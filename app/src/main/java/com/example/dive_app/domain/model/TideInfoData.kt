@@ -10,6 +10,12 @@ data class TideInfoData(
     val pMul: String = "",
     val pSun: String = "",
     val pMoon: String = "",
+    // API 필드
+    val pTime1: String = "",
+    val pTime2: String = "",
+    val pTime3: String = "",
+    val pTime4: String = "",
+    // 레거시/호환
     val jowi1: String = "",
     val jowi2: String = "",
     val jowi3: String = "",
