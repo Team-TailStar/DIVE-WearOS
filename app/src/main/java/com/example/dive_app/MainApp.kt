@@ -21,6 +21,7 @@ import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import com.example.dive_app.ui.screen.HomeScreen
 import com.example.dive_app.ui.screen.alert.EmergencyScreen
+import com.example.dive_app.ui.screen.location.LocationScreen
 
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged

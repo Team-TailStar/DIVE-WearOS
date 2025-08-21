@@ -102,13 +102,13 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev?.action == MotionEvent.ACTION_DOWN) {
-            tapDetector.onTapped()
-        }
-        return super.dispatchTouchEvent(ev)
-
-    }
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        if (ev?.action == MotionEvent.ACTION_DOWN) {
+//            tapDetector.onTapped()
+//        }
+//        return super.dispatchTouchEvent(ev)
+//
+//    }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         val path = messageEvent.path

@@ -20,6 +20,13 @@ import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 // Models (SavedStateHandle로 전달/회수)
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.model.TideInfoData
+// 추가 import
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
+import com.example.dive_app.ui.screen.location.LocationScreen
+import com.example.dive_app.ui.screen.location.CurrentLocationScreen
+import com.example.dive_app.ui.screen.location.FishingPointScreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -36,8 +43,6 @@ fun AppNavHost(
     AnimatedNavHost(
         navController = navController,
         startDestination = "home",
-
-        //전역 공통 전환: 페이드 인/아웃 (300ms)
         enterTransition     = { fadeIn(animationSpec = tween(900)) },
         exitTransition      = { fadeOut(animationSpec = tween(900)) },
         popEnterTransition  = { fadeIn(animationSpec = tween(900)) },
@@ -63,22 +68,44 @@ fun AppNavHost(
                 fishingViewModel = fishViewModel,
                 locationViewModel = locationViewModel
             )
+//        }
+//        composable("current_location") {
+//            CurrentLocationScreen(locationViewModel = locationViewModel)
         }
-        composable("current_location") { CurrentLocationScreen(locationViewModel) }
+
+
         composable("fishing_detail") {
             val point: FishingPoint? =
                 navController.previousBackStackEntry
                     ?.savedStateHandle
-                    ?.get<FishingPoint>("selectedPoint")
+                    ?.get<FishingPoint>("selectedPoint")   // ← 키 통일
             point?.let { FishingDetailScreen(point = it) }
         }
+
         composable("fishing_point") {
+            // 선택된 포인트
             val point: FishingPoint? =
                 navController.previousBackStackEntry
                     ?.savedStateHandle
                     ?.get<FishingPoint>("selectedPoint")
-            point?.let { FishingPointScreen(point = it, navController = navController) }
+
+            // ✅ 주변 포인트 & 현재 위치 가져오기
+            val allPoints by fishViewModel.points.collectAsState()
+            val loc by locationViewModel.location.observeAsState()
+            val lat = loc?.first ?: 0.0
+            val lon = loc?.second ?: 0.0
+
+            point?.let {
+                FishingPointScreen(
+                    point = it,
+                    navController = navController,
+                    fishingPoints = allPoints,
+                    currentLat = lat,
+                    currentLon = lon
+                )
+            }
         }
+
         composable("danger_alert") { DangerAlertScreen(onCancelClick = { navController.popBackStack() }) }
     }
 }
