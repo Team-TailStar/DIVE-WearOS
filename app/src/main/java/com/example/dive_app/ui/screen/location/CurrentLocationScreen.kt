@@ -309,33 +309,56 @@ fun CurrentLocationScreen(
                 enter = fadeIn(), exit = fadeOut(),
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .shadow(16.dp, RoundedCornerShape(22.dp))
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Color(0xF01A1A1A))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth(0.68f)       // 현위치 상자와 동일 비율
+                        .padding(bottom = 13.dp)    // 동일 여백
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = currentFP?.point_nm ?: "-",
-                            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = currentFP?.point_dt ?: "",
-                            color = Color(0xFF58CCFF), fontSize = 13.sp, fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "${idx + 1} / ${nearby.size}",
-                            color = Color(0xFFBDBDBD), fontSize = 11.sp
-                        )
+                    val w = maxWidth
+                    val h = w / 2                  // 반원 높이
+                    val shape = RoundedCornerShape(
+                        topStart = 30.dp, topEnd = 30.dp,
+                        bottomStart = h, bottomEnd = h
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .width(w)
+                            .height(h)
+                            .shadow(14.dp, shape)
+                            .clip(shape)
+                            .background(Color(0xF01A1A1A))
+                            .padding(vertical = 12.dp, horizontal = 16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = currentFP?.point_nm ?: "-",
+                                color = Color.White,
+                                fontSize = 18.sp,                       // 현위치 상자 타이틀과 톤 맞춤
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = currentFP?.point_dt ?: "",
+                                color = Color(0xFF58CCFF),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "${idx + 1} / ${nearby.size}",
+                                color = Color(0xFFBDBDBD),
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
         }
+
 
         // 초기/모드전환 안내 패널 (포인트 선택되면 숨김)
         AnimatedVisibility(
