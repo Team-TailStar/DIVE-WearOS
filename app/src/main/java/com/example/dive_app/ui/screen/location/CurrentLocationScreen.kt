@@ -1,13 +1,23 @@
 package com.example.dive_app.ui.screen
+import android.view.MotionEvent
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +42,9 @@ import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.OverlayImage
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.ui.ExperimentalComposeUiApi
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CurrentLocationScreen(
     locationViewModel: LocationViewModel
@@ -46,6 +58,29 @@ fun CurrentLocationScreen(
     val location by locationViewModel.location.observeAsState()
     val latitude = location?.first ?: 35.1151
     val longitude = location?.second ?: 129.0415
+    val scope = rememberCoroutineScope()
+    var uiVisible by remember { mutableStateOf(true) }
+    var hideJob by remember { mutableStateOf<Job?>(null) }
+
+
+// 최초 진입 2초 뒤 숨김
+    LaunchedEffect(Unit) {
+        hideJob?.cancel()
+        hideJob = scope.launch {
+            delay(4000)
+            uiVisible = false
+        }
+    }
+
+    // 탭 시 보여주고 2초 뒤 다시 숨김
+    fun showTemporarily() {
+        uiVisible = true
+        hideJob?.cancel()
+        hideJob = scope.launch {
+            delay(3000)
+            uiVisible = false
+        }
+    }
 
     LaunchedEffect(latitude, longitude) {
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
@@ -101,92 +136,87 @@ fun CurrentLocationScreen(
                     )
                 )
         )
-
         // 상단 칩: “현 위치”
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 10.dp)
-                .shadow(6.dp, RoundedCornerShape(24.dp), clip = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xCC1F1F1F))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = "현 위치",
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
 
-        // (옵션) 오른쪽 내비게이션 화살표 — 스샷엔 없어 보이면 주석 처리해도 됨
-        /*Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "다음",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 6.dp)
-                .size(28.dp)
-        )*/
-
-        // 하단 반투명 정보 패널 (위는 살짝, 아래는 크게 둥글게)
-        val bubbleShape = RoundedCornerShape(
-            topStartPercent = 60,   // 위를 살짝만
-            topEndPercent = 60,
-            bottomStartPercent = 100,
-            bottomEndPercent = 100
-        )
-
-        BoxWithConstraints(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(0.68f)    // 폭 비율 조절
-                .padding(bottom = 13.dp) // 원 하단과 거의 맞닿게
-        ) {
-            val w = maxWidth
-            val h = w / 2   // 정확히 반원 높이
-
-            val shape = RoundedCornerShape(
-                topStart = 30.dp,
-                topEnd   = 30.dp,
-                bottomStart = h,
-                bottomEnd   = h
-            )
-
+           // 상단 칩: “현 위치” (항상 표시 + 상단 중앙 정렬)
             Box(
                 modifier = Modifier
-                    .width(w)
-                    .height(h)
-                    .shadow(14.dp, shape)
-                    .clip(shape)
-                    .background(Color(0xF01A1A1A))
+                    .align(Alignment.TopCenter)
+                    .padding(top = 10.dp)
+                    .shadow(6.dp, RoundedCornerShape(24.dp), clip = false)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xCC1F1F1F))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
-                Column(
+                Text(
+                    "현 위치",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+
+        }
+
+// 하단 반원 패널
+        AnimatedVisibility(
+            visible = uiVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter) // ★ 여기로 이동
+        ) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth(0.68f)
+                    .padding(bottom = 13.dp)
+            ) {
+                val w = maxWidth
+                val h = w / 2
+
+                val shape = RoundedCornerShape(
+                    topStart = 30.dp, topEnd = 30.dp,
+                    bottomStart = h, bottomEnd = h
+                )
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .width(w)
+                        .height(h)               // ★ 높이=반경 → 완전 반원 유지
+                        .shadow(14.dp, shape)
+                        .clip(shape)
+                        .background(Color(0xF01A1A1A))
                 ) {
-                    Text(
-                        text = region1,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFFF4F4F4)
-                    )
-                    if (region2.isNotBlank()) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = region2,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFFE0E0E0)
-                        )
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(region1, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFF4F4F4))
+                        if (region2.isNotBlank()) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(region2, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFFE0E0E0))
+                        }
                     }
+
+
+
                 }
             }
         }
 
+        DisposableEffect(Unit) {
+            onDispose { hideJob?.cancel() }
+        }
+
+        Box(
+            Modifier
+                .matchParentSize()
+                .zIndex(1f)
+                .pointerInteropFilter { ev ->
+                    if (ev.action == MotionEvent.ACTION_DOWN) {
+                        showTemporarily()
+                    }
+                    false
+                }
+        )
     }
+
 }
