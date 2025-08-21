@@ -1,24 +1,34 @@
 package com.example.dive_app
 
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.dive_app.data.repository.WearDataRepository
 import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
+import com.example.dive_app.sensor.EmergencyTapDetector
 import com.example.dive_app.sensor.HeartRateSensorManager
+import com.example.dive_app.sensor.Spo2Manager
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import kotlin.getValue
 
@@ -39,16 +49,20 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     private val airQualityViewModel: AirQualityViewModel by viewModels()
 
     private lateinit var heartRateSensorManager: HeartRateSensorManager
+    private lateinit var spo2Manager: Spo2Manager
+    private lateinit var tapDetector: EmergencyTapDetector
     private lateinit var repo: WearDataRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 센서 권한 요청
         requestSensorPermission()
+        //requestCallPhonePermission()
+
         // 심박수 매니저 초기화
         heartRateSensorManager = HeartRateSensorManager(this) { bpm ->
             Log.d("WatchMsg", "❤️ Heart rate: $bpm BPM")
-            healthViewModel.addHeartRate(bpm)
+            healthViewModel.updateBpm(bpm)
 
             val responseJson = JSONObject().apply {
                 put("heart_rate", bpm)
@@ -56,12 +70,40 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             }
             replyToPhone("/response_heart_rate", responseJson.toString())
         }
+        tapDetector = EmergencyTapDetector {
+            healthViewModel.triggerTapEmergency()
+        }
+
+        spo2Manager = Spo2Manager(this)
         repo = WearDataRepository(
             weatherViewModel, tideViewModel, fishViewModel, locationViewModel, airQualityViewModel)
 
         setContent {
             MainApp(healthViewModel, fishViewModel, weatherViewModel, tideViewModel, locationViewModel, airQualityViewModel)
         }
+
+        lifecycleScope.launch {
+            spo2Manager.currentSpo2.collect { spo2 ->
+                if (spo2 > 0) {
+                    healthViewModel.updateSpo2(spo2)
+
+                    val responseJson = JSONObject().apply {
+                        put("spo2", spo2)
+                        put("timestamp", System.currentTimeMillis())
+                    }
+                    replyToPhone("/response_spo2", responseJson.toString())
+
+                    Log.d("WatchMsg", "🩸 SpO₂ 업데이트: $spo2%")
+                }
+            }
+        }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev?.action == MotionEvent.ACTION_DOWN) {
+            tapDetector.onTapped()
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -98,6 +140,20 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
+    private fun requestCallPhonePermission() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.CALL_PHONE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.CALL_PHONE),
+                100
+            )
+        }
+    }
+
     /**
      * 요청 매서드
      */
@@ -129,6 +185,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     override fun onResume() {
         super.onResume()
         heartRateSensorManager.start()
+        spo2Manager.startListening()
         Wearable.getMessageClient(this).addListener(this)
 
     }
@@ -136,6 +193,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     override fun onPause() {
         super.onPause()
         heartRateSensorManager.stop()
+        spo2Manager.stopListening()
         Wearable.getMessageClient(this).removeListener(this)
 
     }

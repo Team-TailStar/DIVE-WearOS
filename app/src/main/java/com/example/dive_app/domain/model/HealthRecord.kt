@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class HealthRecord(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val heartRate: Int,  // 심박수
+    val spo2: Int,
     val timestamp: Long = System.currentTimeMillis()
 )

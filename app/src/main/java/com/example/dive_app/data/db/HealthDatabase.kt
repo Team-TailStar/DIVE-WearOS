@@ -9,7 +9,7 @@ import com.example.dive_app.domain.model.HealthRecord
 
 @Database(
     entities = [HealthRecord::class],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
