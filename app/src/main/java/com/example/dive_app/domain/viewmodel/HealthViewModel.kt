@@ -34,6 +34,11 @@ class HealthViewModel(application: Application) : AndroidViewModel(application) 
     private val _emergencyEvent = MutableSharedFlow<EmergencyEvent>()
     val emergencyEvent: SharedFlow<EmergencyEvent> = _emergencyEvent
 
+    companion object {
+        private const val MIN_BPM = 40    // 심박수 최소 허용
+        private const val MIN_SPO2 = 90   // SpO₂ 최소 허용
+    }
+
     init {
         val db = AppDatabase.getDatabase(application)
         repo = HealthRepository(db.healthRecordDao())
@@ -81,6 +86,21 @@ class HealthViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun checkBpmEmergency(bpm: Int) {
+        if (bpm in 1 until MIN_BPM) {
+            viewModelScope.launch {
+                Log.d("WatchMsg", "🚨 심박수 위험: $bpm BPM")
+                _emergencyEvent.emit(EmergencyEvent.HeartRateLow(bpm))
+            }
+        }
+    }
+
+    private fun checkSpo2Emergency(spo2: Int) {
+        if (spo2 in 1 until MIN_SPO2) {
+            viewModelScope.launch {
+                Log.d("WatchMsg", "🚨 SpO₂ 위험: $spo2%")
+                _emergencyEvent.emit(EmergencyEvent.Spo2Low(spo2))
+            }
         }
     }
 

@@ -1,7 +1,9 @@
 package com.example.dive_app
 
 import WeatherScreen
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -10,6 +12,7 @@ import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.HealthViewModel
 import com.example.dive_app.domain.model.TideInfoData
 import com.example.dive_app.domain.viewmodel.AirQualityViewModel
+import com.example.dive_app.domain.viewmodel.EmergencyEvent
 import com.example.dive_app.ui.screen.weather.AirQualityScreen
 import com.example.dive_app.ui.screen.location.FishingDetailScreen
 import com.example.dive_app.ui.screen.health.HealthScreen
@@ -22,7 +25,9 @@ import com.example.dive_app.ui.screen.weather.WeatherMenuScreen
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
+import com.example.dive_app.ui.screen.alert.EmergencyScreen
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun MainApp(
@@ -35,6 +40,22 @@ fun MainApp(
 ) {
     MyApplicationTheme {
         val navController = rememberNavController()
+
+        LaunchedEffect(Unit) {
+            healthVM.emergencyEvent
+                .distinctUntilChanged()
+                .collect { event ->
+                    when (event) {
+                        is EmergencyEvent.HeartRateLow,
+                        is EmergencyEvent.Spo2Low,
+                        is EmergencyEvent.ScreenTapped -> {
+                            if (navController.currentBackStackEntry?.destination?.route != "emergency") {
+                                navController.navigate("emergency")
+                            }
+                        }
+                    }
+                }
+        }
 
         NavHost(
             navController = navController,
@@ -65,6 +86,9 @@ fun MainApp(
                 if (tide != null) {
                     TideDetailPage(tide, navController)
                 }
+            }
+            composable("emergency") {
+                EmergencyScreen(navController)
             }
             composable("weather") {
                 WeatherScreen(navController = navController, weatherVM)
