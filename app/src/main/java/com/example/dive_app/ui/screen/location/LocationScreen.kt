@@ -46,6 +46,7 @@ fun LocationScreen(
         if (page == 0) {
             CurrentLocationScreen(
                 locationViewModel = locationViewModel,
+                points = points,                    // ← 추가: 실제 포인트 전달
                 onMarkerClick = onMarkerClick
             )
         } else {
@@ -60,4 +61,5 @@ fun LocationScreen(
             )
         }
     }
+
 }

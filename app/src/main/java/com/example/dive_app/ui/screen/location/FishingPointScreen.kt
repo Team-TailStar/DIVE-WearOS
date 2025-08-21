@@ -27,8 +27,8 @@ fun FishingPointScreen(
 ) {
     val mapView = remember { MapView(navController.context) }
     val cameraMoved = remember { mutableStateOf(false) }
+    val naverMapRef = remember { mutableStateOf<com.naver.maps.map.NaverMap?>(null) }
 
-    // ★ 우리가 만든 마커들을 보관
     val markers = remember { mutableStateListOf<Marker>() }
 
     DisposableEffect(mapView) {
@@ -40,7 +40,11 @@ fun FishingPointScreen(
             mapView.onPause(); mapView.onStop(); mapView.onDestroy()
         }
     }
-
+    LaunchedEffect(currentLat, currentLon) {
+        naverMapRef.value?.moveCamera(
+            CameraUpdate.scrollTo(LatLng(currentLat, currentLon))
+        )
+    }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
@@ -48,7 +52,7 @@ fun FishingPointScreen(
             update = { mv ->
                 mv.getMapAsync { naverMap ->
                     naverMap.uiSettings.isZoomControlEnabled = false
-
+                    naverMapRef.value = naverMap
                     // 현위치 오버레이
                     with(naverMap.locationOverlay) {
                         isVisible = true
@@ -74,7 +78,6 @@ fun FishingPointScreen(
                                 anchor = PointF(0.5f, 1f)
                                 map = naverMap
 
-                                // ★ 클릭 리스너(시그니처 명시)
                                 setOnClickListener(Overlay.OnClickListener {
                                     onMarkerClick(fp)
                                     true
