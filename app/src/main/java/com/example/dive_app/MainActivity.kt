@@ -141,6 +141,25 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     showWatchNotification("알림 오류", msg)
                 }
             }
+            "/weather_alert" -> {
+                try {
+                    val json = JSONObject(data)
+                    val msg = json.getString("weather_alert")
+                    showWatchNotification("기상 경고", msg)
+                } catch (e: Exception) {
+                    showWatchNotification("알림 오류", data)
+                }
+            }
+
+            "/tide_alert" -> {
+                try {
+                    val json = JSONObject(data)
+                    val msg = json.getString("tide_alert")
+                    showWatchNotification("물때 경고", msg)
+                } catch (e: Exception) {
+                    showWatchNotification("알림 오류", data)
+                }
+            }
             "/request_heart_rate" -> {
                 Log.d("WatchMsg", "📩 폰에서 심박수 요청 받음")
 
