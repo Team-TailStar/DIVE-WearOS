@@ -1,6 +1,7 @@
 // HomeScreen.kt
 package com.example.dive_app.ui.screen
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -28,15 +29,30 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.delay // ⬅️ 추가
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.hypot
+import androidx.compose.ui.graphics.TransformOrigin
+import com.example.dive_app.ui.nav.NavTransitionState
 
 private const val ICON_STAGGER_MS = 180      // 아이콘 간 간격
 private const val ICON_DURATION_MS = 1100    // 한 아이콘이 자리 잡는 시간
 private val SmoothEasing = FastOutSlowInEasing
 
+private data class RevealParams(
+    val center: Offset,
+    val color: Color,
+)
+
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
+
 
     // 날짜 포맷
     val today = remember { LocalDate.now() }
@@ -44,12 +60,24 @@ fun HomeScreen(navController: NavController) {
     val dayMonth = remember(today) { today.format(dayMonthFormatter) }
     val dayOfMonth = remember(today) { today.dayOfMonth.toString() }
 
-    // 중앙 날짜 애니메이션: alpha(0→1), translationY(20px→0px)
+    // 중앙 날짜 애니메이션
     val textAlpha = remember { Animatable(0f) }
     val textTransY = remember { Animatable(40f) }
     LaunchedEffect(Unit) {
         textAlpha.animateTo(1f, tween(450, easing = LinearOutSlowInEasing))
         textTransY.animateTo(0f, tween(500, easing = LinearOutSlowInEasing))
+    }
+
+    // 🔵 원형 리빌 상태
+    var reveal by remember { mutableStateOf<RevealParams?>(null) }
+    val radius = remember { Animatable(0f) }
+    val density = LocalDensity.current
+    val config = LocalConfiguration.current
+    val screenW = with(density) { config.screenWidthDp.dp.toPx() }
+    val screenH = with(density) { config.screenHeightDp.dp.toPx() }
+    val maxRadiusFor = remember(screenW, screenH) {
+        // 화면을 충분히 덮게 대각선 길이를 사용
+        hypot(screenW, screenH)
     }
 
     Box(
@@ -63,7 +91,7 @@ fun HomeScreen(navController: NavController) {
                 .offset(y = (-25).dp)
                 .graphicsLayer {
                     alpha = textAlpha.value
-                    translationY = textTransY.value // px 단위
+                    translationY = textTransY.value
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -73,67 +101,89 @@ fun HomeScreen(navController: NavController) {
 
         // 반원 아이콘 스태거 등장
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            val radius = 55.dp
-            val angles = listOf(168,115,65,12)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                val radius = 55.dp
+                val angles = listOf(168,115,65,12)
 
+                val icons = listOf(
+                    Triple(Icons.Filled.LocationOn, Color(0xFF4CAF50)) {
+                        (context as MainActivity).requestPoint()
+                        context.requestLocation()
+                        navController.navigate("location")
+                    },
+                    Triple(Icons.Filled.WbSunny, Color(0xFFFFC107)) {
+                        (context as MainActivity).requestWeather()
+                        navController.navigate("weather")
+                    },
+                    Triple(Icons.Filled.Waves, Color(0xFF2196F3)) {
+                        (context as MainActivity).requestTide()
+                        navController.navigate("tide")
+                    },
+                    Triple(Icons.Filled.Favorite, Color(0xFFF44336)) {
+                        navController.navigate("health")
+                    }
+                )
 
-            val icons = listOf(
-                Triple(Icons.Filled.LocationOn, Color(0xFF4CAF50)) {
-                    navController.navigate("location")
-                    (context as MainActivity).requestPoint()
-                    (context as MainActivity).requestLocation()
-                },
-                Triple(Icons.Filled.WbSunny, Color(0xFFFFC107)) {
-                    (context as MainActivity).requestWeather()
-                    navController.navigate("weather")
-                },
-                Triple(Icons.Filled.Waves, Color(0xFF2196F3)) {
-                    (context as MainActivity).requestTide()
-                    navController.navigate("tide")
-                },
-                Triple(Icons.Filled.Favorite, Color(0xFFF44336)) {
-                    navController.navigate("health")
-                }
-            )
+                icons.forEachIndexed { index, (icon, bg, go) ->
+                    val angleRad = Math.toRadians(angles[index].toDouble())
+                    val targetX = (radius.value * cos(angleRad)).dp
+                    val targetY = (radius.value * sin(angleRad)).dp
 
-            icons.forEachIndexed { index, (icon, bg, onClick) ->
-                val angleRad = Math.toRadians(angles[index].toDouble())
-                val targetX = (radius.value * cos(angleRad)).dp
-                val targetY = (radius.value * sin(angleRad)).dp
-
-                // 0→1 진행도
-                val progress = remember { Animatable(0f) }
-                LaunchedEffect(Unit) {
-                    delay((index * ICON_STAGGER_MS).toLong())
-                    progress.animateTo(
-                        1f,
-                        animationSpec = tween(
-                            durationMillis = ICON_DURATION_MS, // ⬅️ 더 긴 지속시간
-                            easing = SmoothEasing              // ⬅️ 부드러운 커브
+                    val progress = remember { Animatable(0f) }
+                    LaunchedEffect(Unit) {
+                        delay((index * ICON_STAGGER_MS).toLong())
+                        progress.animateTo(
+                            1f, animationSpec = tween(ICON_DURATION_MS, easing = SmoothEasing)
                         )
-                    )
-                }
+                    }
+                    val scale = lerp(0.85f, 1f, progress.value)
+                    val alpha = progress.value
+                    val x = (targetX.value * progress.value).dp
+                    val y = (targetY.value * progress.value).dp
 
-                // 부드러운 시작을 위해 스케일 시작값 살짝 키움(튐 방지)
-                val scale = lerp(0.85f, 1f, progress.value)
-                val alpha = progress.value
-                val x = (targetX.value * progress.value).dp
-                val y = (targetY.value * progress.value).dp
+                    // ⬇️ 이 아이콘의 "화면 기준 중심" 좌표(px) 추적
+                    var center by remember { mutableStateOf<Offset?>(null) }
 
-                Box(
-                    modifier = Modifier
-                        .offset(x, y)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            this.alpha = alpha
-                        }
-                ) {
-                    CircleIconButton(icon = icon, background = bg, onClick = onClick)
+                    Box(
+                        modifier = Modifier
+                            .offset(x, y)
+                            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
+                            .onGloballyPositioned { coords ->
+                                val pos = coords.positionInRoot()
+                                val sz = coords.size
+                                center = Offset(pos.x + sz.width / 2f, pos.y + sz.height / 2f)
+                            }
+                    ) {
+                        CircleIconButton(
+                            icon = icon,
+                            background = bg,
+                            onClick = {
+                                // ⬇️ 클릭 순간의 transform origin(0..1 비율) 저장
+                                val c = center
+                                if (c != null && screenW > 0f && screenH > 0f) {
+                                    val fx = (c.x / screenW).coerceIn(0f, 1f)
+                                    val fy = (c.y / screenH).coerceIn(0f, 1f)
+                                    NavTransitionState.origin = TransformOrigin(fx, fy)
+                                } else {
+                                    NavTransitionState.origin = TransformOrigin.Center
+                                }
+                                go() // 실제 네비게이션 호출 (위에서 정의한 요청 + navigate)
+                            }
+                        )
+                    }
                 }
             }
+        }
 
-
+        // 🔵 원형 리빌 오버레이(맨 위에 그림)
+        reveal?.let { rp ->
+            Canvas(Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = rp.color,
+                    radius = radius.value,
+                    center = rp.center
+                )
+            }
         }
     }
 }

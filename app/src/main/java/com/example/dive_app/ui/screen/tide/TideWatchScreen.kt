@@ -69,6 +69,39 @@ fun parsePThisDate(raw: String): LocalDate? {
 enum class TideType { HIGH, LOW, FLOW }
 
 @Immutable
+data class CalloutItem(
+    val time: LocalTime,
+    val text: String,
+    val color: Color
+)
+fun TideInfoData.toCalloutItems(): List<CalloutItem> {
+    val rows = listOf(jowi1, jowi2, jowi3, jowi4).filter { it.isNotBlank() }
+    return rows.mapNotNull { raw ->
+        val parts = raw.split(" ")
+        val timeStr = parts.getOrNull(0) ?: return@mapNotNull null
+        val typeStr = parts.getOrNull(2) ?: ""
+        val t = try { LocalTime.parse(timeStr) } catch (_: Exception) { null } ?: return@mapNotNull null
+
+        val isHigh = typeStr.startsWith("▲")
+        val isLow  = typeStr.startsWith("▼")
+        val symbol = when {
+            isHigh -> "▲"
+            isLow  -> "▼"
+            else   -> "•"
+        }
+        val c = when {
+            isHigh -> Color(0xFF1E88E5) // 파랑(만조)
+            isLow  -> Color(0xFFE53935) // 빨강(간조)
+            else   -> Color(0xFFB0BEC5)
+        }
+        CalloutItem(
+            time = t,
+            text = "$symbol ${"%02d:%02d".format(t.hour, t.minute)}",
+            color = c
+        )
+    }
+}
+@Immutable
 data class TideMarker(
     val time: LocalTime,
     val type: TideType,
@@ -245,10 +278,10 @@ fun TideWatchScreen(
 
                     // 바깥 라벨
                     SideCallouts(
-                        items = today?.toCallouts() ?: emptyList(),
+                        items = today?.toCalloutItems() ?: emptyList(),
                         radius = outerLabelRadius,
                         modifier = Modifier.align(Alignment.Center),
-                        labelPadDp = 4.dp,
+                        labelPadDp = 6.dp,
                         nudgeDp = 2.dp
                     )
 
@@ -372,18 +405,42 @@ private fun TideDial(
 
 @Composable
 private fun SideCallouts(
-    items: List<Pair<LocalTime, Color>>,
-    radius: Dp,
+    items: List<CalloutItem>,
+    radius: Dp,                 // 다이얼 링 바깥 반지름(Dp)
     modifier: Modifier = Modifier,
-    labelPadDp: Dp = 4.dp,
-    nudgeDp: Dp = 2.dp
+    labelPadDp: Dp = 6.dp,      // 링에서 라벨까지 간격
+    nudgeDp: Dp = 2.dp          // 미세 보정(위/아래 살짝 밀기)
 ) {
-    val rLabel = radius + labelPadDp
     val density = LocalDensity.current
-    val nudgePx = with(density) { nudgeDp.toPx() }
+    val rOuterPx = with(density) { (radius + labelPadDp).toPx() }
+    val nudgePx  = with(density) { nudgeDp.toPx() }
 
-    Box(modifier = modifier.size(rLabel * 2).padding(8.dp)) {
-        items.forEachIndexed { index, (time, color) -> }
+    Box(modifier = modifier.size((radius + labelPadDp + 24.dp) * 2)) {
+        items.forEach { item ->
+            val angleRad = timeToAngleRad(item.time)    // -90° 기준 라디안
+            val cosA = kotlin.math.cos(angleRad)
+            val sinA = kotlin.math.sin(angleRad)
+
+            // 라벨 중앙이 놓일 좌표 (Box 중앙을 (0,0)로 가정)
+            val centerX = rOuterPx * cosA
+            val centerY = rOuterPx * sinA
+
+            // 텍스트 폭/높이를 모르면 대략 절반(-40, -10) 정도 센터 보정
+            // (Watch 원 안 튀지 않게 조정값을 좌우/상하 다르게)
+            val approxHalfW = 40
+            val approxHalfH = 10
+
+            val offsetX = (centerX - approxHalfW).toInt()
+            val offsetY = (centerY - approxHalfH + nudgePx * if (sinA > 0) 1 else -1).toInt()
+
+            Text(
+                text = item.text,
+                color = item.color,
+                style = MaterialTheme.typography.caption2,
+                modifier = Modifier
+                    .absoluteOffset(x = offsetX.dp, y = offsetY.dp)
+            )
+        }
     }
 }
 

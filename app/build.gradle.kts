@@ -47,21 +47,23 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.compose.bom))
+    // Compose BOM으로 버전 정리
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+
+    // 기본 Compose
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.animation:animation")
+
+    // Accompanist
     implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
 
-    implementation("androidx.compose.animation:animation")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // ★ Wear Compose (로터리 이벤트 onRotaryScrollEvent)
+    implementation("androidx.wear.compose:compose-foundation:1.3.1")
+    implementation("androidx.wear.compose:compose-material:1.3.1")
 
-    implementation(libs.ui)
-    implementation(libs.ui.graphics)
-    implementation(libs.ui.tooling.preview)
-    implementation(libs.foundation)
-
-    implementation(libs.wear.compose.material)
-    implementation(libs.wear.compose.foundation)
-    implementation(libs.wear.tooling.preview)
-
+    // 버전 카탈로그 사용 항목 (libs.*) — 중복되지 않는 것만 유지
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
     implementation(libs.core.splashscreen)
@@ -69,13 +71,8 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.material3.android)
     implementation(libs.material.icons.extended)
+
     implementation("com.naver.maps:map-sdk:3.22.1")
-
-    androidTestImplementation(platform(libs.compose.bom))
-    androidTestImplementation(libs.ui.test.junit4)
-
-    debugImplementation(libs.ui.tooling)
-    debugImplementation(libs.ui.test.manifest)
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
@@ -87,4 +84,11 @@ dependencies {
 
     implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
     implementation("androidx.compose.runtime:runtime-livedata")
+
+    // 테스트/디버그
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    androidTestImplementation(libs.ui.test.junit4)
+    debugImplementation(libs.ui.tooling)
+    debugImplementation(libs.ui.test.manifest)
 }
+
