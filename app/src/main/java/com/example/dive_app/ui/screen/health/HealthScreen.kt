@@ -29,6 +29,7 @@ fun HealthScreen(
     viewModel: HealthViewModel
 ) {
     val records by viewModel.records.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -37,11 +38,10 @@ fun HealthScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        /** ------------------- 심박수 ------------------- **/
         Text("심박수", color = Color.White, fontSize = 18.sp)
-
         Spacer(Modifier.height(8.dp))
 
-        // 🩺 최신 기록
         val latestRecord = records.lastOrNull()
         if (latestRecord != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -61,12 +61,9 @@ fun HealthScreen(
 
         Spacer(Modifier.height(6.dp))
 
-        // 심박수 그래프
         if (records.isNotEmpty()) {
             ChartCard(title = "심박수 기록") { chart ->
-                // 최근 30개만 사용
                 val limited = records.takeLast(30)
-
                 val entries = limited.mapIndexed { index, r ->
                     Entry(index.toFloat(), r.heartRate.toFloat())
                 }
@@ -79,7 +76,6 @@ fun HealthScreen(
                 }
                 chart.data = LineData(dataSet)
 
-                // Y축 범위 고정 (심박수 정상 범위)
                 chart.axisLeft.apply {
                     axisMinimum = 40f
                     axisMaximum = 120f
@@ -87,13 +83,62 @@ fun HealthScreen(
                     textColor = android.graphics.Color.WHITE
                 }
                 chart.xAxis.gridColor = android.graphics.Color.DKGRAY
+                chart.animateX(0)
+            }
+        }
 
-                // 애니메이션 제거 (튕김 방지)
+        Spacer(Modifier.height(20.dp))
+
+        /** ------------------- 산소포화도 ------------------- **/
+        Text("산소포화도 (SpO₂)", color = Color.White, fontSize = 18.sp)
+        Spacer(Modifier.height(8.dp))
+
+        if (latestRecord != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Favorite, // 필요시 O₂ 아이콘으로 교체
+                    contentDescription = "SpO₂",
+                    tint = Color.Green,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("${latestRecord.spo2} %",
+                    color = Color.White, fontSize = 22.sp)
+            }
+        } else {
+            Text("데이터 없음", color = Color.Gray)
+        }
+
+        Spacer(Modifier.height(6.dp))
+
+        if (records.isNotEmpty()) {
+            ChartCard(title = "산소포화도 기록") { chart ->
+                val limited = records.takeLast(30)
+                val entries = limited.mapIndexed { index, r ->
+                    Entry(index.toFloat(), r.spo2.toFloat())
+                }
+                val dataSet = LineDataSet(entries, "SpO₂").apply {
+                    color = android.graphics.Color.GREEN
+                    setCircleColor(android.graphics.Color.WHITE)
+                    lineWidth = 2f
+                    circleRadius = 4f
+                    setDrawValues(false)
+                }
+                chart.data = LineData(dataSet)
+
+                chart.axisLeft.apply {
+                    axisMinimum = 80f    // 보통 90% 미만은 위험
+                    axisMaximum = 100f
+                    gridColor = android.graphics.Color.DKGRAY
+                    textColor = android.graphics.Color.WHITE
+                }
+                chart.xAxis.gridColor = android.graphics.Color.DKGRAY
                 chart.animateX(0)
             }
         }
     }
 }
+
 
 @Composable
 fun ChartCard(title: String, updateChart: (LineChart) -> Unit) {
