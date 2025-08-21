@@ -16,6 +16,8 @@ import com.example.dive_app.ui.screen.*
 // ViewModels
 import com.example.dive_app.domain.viewmodel.*
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
+import com.example.dive_app.ui.screen.tide.TideDetailTimesPage
+import com.example.dive_app.ui.screen.tide.TideDetailSunMoonPage
 
 // Models (SavedStateHandle로 전달/회수)
 import com.example.dive_app.domain.model.FishingPoint
@@ -53,14 +55,26 @@ fun AppNavHost(
         composable("weatherMenu") { WeatherMenuScreen(navController) }
         composable("sea_weather") { SeaWeatherScreen(navController, weatherViewModel) }
         composable("air_quality") { AirQualityScreen(navController, airQualityViewModel) }
+        // ...
         composable("tide") { TideWatchScreen(navController, tideViewModel) }
-        composable("tideDetail") {
+
+// 🔹 tide 상세 라우트는 2개로 나눔
+        composable("tide/times") {
             val tide: TideInfoData? =
                 navController.previousBackStackEntry
                     ?.savedStateHandle
                     ?.get<TideInfoData>("selectedTide")
-            tide?.let { TideDetailPage(tide = it, navController = navController) }
+            tide?.let { TideDetailTimesPage(tide = it, navController = navController) }
         }
+
+        composable("tide/sunmoon") {
+            val tide: TideInfoData? =
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<TideInfoData>("selectedTide")
+            tide?.let { TideDetailSunMoonPage(tide = it, navController = navController) }
+        }
+
         composable("health") { HealthScreen(viewModel = healthViewModel) }
         composable("location") {
             LocationScreen(

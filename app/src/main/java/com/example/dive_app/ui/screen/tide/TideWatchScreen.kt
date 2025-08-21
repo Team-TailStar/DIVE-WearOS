@@ -230,17 +230,18 @@ fun TideWatchScreen(
             onDragStart = { dragAccum = 0f },
             onVerticalDrag = { _, dy -> dragAccum += dy }, // 아래로 +, 위로 -
             onDragEnd = {
-                if (dragAccum > navigateThresholdPx && today != null) {
+                // 위로 스와이프(음수 누적)일 때 상세 "times" 페이지로 이동
+                if (dragAccum <= -navigateThresholdPx && today != null) {
                     navController.currentBackStackEntry
                         ?.savedStateHandle
                         ?.set("selectedTide", today)
-                    navController.navigate("tideDetail")
+                    navController.navigate("tide/times") { launchSingleTop = true }
                 }
                 dragAccum = 0f
-            }
+            },
+            onDragCancel = { dragAccum = 0f }
         )
     }
-
     SwipeToDismissBox(onDismissed = { navController.popBackStack() }) {
         Scaffold(
             vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }

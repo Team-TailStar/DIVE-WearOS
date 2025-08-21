@@ -13,18 +13,15 @@ import androidx.navigation.compose.rememberNavController
 import com.example.dive_app.common.theme.MyApplicationTheme
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.model.TideInfoData
-import com.example.dive_app.domain.viewmodel.AirQualityViewModel
-import com.example.dive_app.domain.viewmodel.EmergencyEvent
-import com.example.dive_app.domain.viewmodel.HealthViewModel
-import com.example.dive_app.domain.viewmodel.LocationViewModel
-import com.example.dive_app.domain.viewmodel.TideViewModel
-import com.example.dive_app.domain.viewmodel.WeatherViewModel
-import com.example.dive_app.ui.screen.HomeScreen
+import com.example.dive_app.domain.viewmodel.*
 import com.example.dive_app.ui.screen.alert.EmergencyScreen
 import com.example.dive_app.ui.screen.location.LocationScreen
-
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
+
+// ✅ 새 페이지 임포트
+import com.example.dive_app.ui.screen.tide.TideDetailTimesPage
+import com.example.dive_app.ui.screen.tide.TideDetailSunMoonPage
 
 @Composable
 fun MainApp(
@@ -38,7 +35,6 @@ fun MainApp(
     MyApplicationTheme {
         val navController = rememberNavController()
 
-        // 응급 이벤트 발생 시 Emergency 화면으로 단일 네비게이션
         LaunchedEffect(Unit) {
             healthVM.emergencyEvent
                 .distinctUntilChanged()
@@ -61,12 +57,9 @@ fun MainApp(
                     navController = navController,
                     startDestination = "home"
                 ) {
-                    composable("home") {
-                        HomeScreen(navController)
-                    }
-                    composable("location") {
-                        LocationScreen(navController, fishingVM, locationVM)
-                    }
+                    composable("home") { HomeScreen(navController) }
+                    composable("location") { LocationScreen(navController, fishingVM, locationVM) }
+
                     composable("fishingDetail") {
                         val point = navController.previousBackStackEntry
                             ?.savedStateHandle
@@ -75,35 +68,33 @@ fun MainApp(
                             FishingDetailScreen(point)
                         }
                     }
-                    composable("tide") {
-                        TideWatchScreen(navController = navController, tideVM = tideVM)
-                    }
-                    composable("tideDetail") {
+
+                    composable("tide") { TideWatchScreen(navController = navController, tideVM = tideVM) }
+
+                    // 🔁 기존 "tideDetail" 제거하고 두 개로 분리
+                    composable("tide/times") {
                         val tide = navController.previousBackStackEntry
                             ?.savedStateHandle
                             ?.get<TideInfoData>("selectedTide")
                         if (tide != null) {
-                            TideDetailPage(tide, navController)
+                            TideDetailTimesPage(tide = tide, navController = navController)
                         }
                     }
-                    composable("emergency") {
-                        EmergencyScreen(navController)
+                    composable("tide/sunmoon") {
+                        val tide = navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.get<TideInfoData>("selectedTide")
+                        if (tide != null) {
+                            TideDetailSunMoonPage(tide = tide, navController = navController)
+                        }
                     }
-                    composable("weather") {
-                        WeatherScreen(navController = navController, weatherVM)
-                    }
-                    composable("weatherMenu") {
-                        WeatherMenuScreen(navController)
-                    }
-                    composable("sea_weather") {
-                        SeaWeatherScreen(navController, weatherVM)
-                    }
-                    composable("air_quality") {
-                        AirQualityScreen(navController, airQualityVM)
-                    }
-                    composable("health") {
-                        HealthScreen(healthVM)
-                    }
+
+                    composable("emergency") { EmergencyScreen(navController) }
+                    composable("weather") { WeatherScreen(navController = navController, weatherVM) }
+                    composable("weatherMenu") { WeatherMenuScreen(navController) }
+                    composable("sea_weather") { SeaWeatherScreen(navController, weatherVM) }
+                    composable("air_quality") { AirQualityScreen(navController, airQualityVM) }
+                    composable("health") { HealthScreen(healthVM) }
                 }
             }
         }
