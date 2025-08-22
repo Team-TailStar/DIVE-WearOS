@@ -206,7 +206,7 @@ private fun MetricRow(
                 .width(leftWidth)
                 .height(itemHeight)
                 .background(
-                    if (isSelected) Color(0xFF2196F3) else Color(0xFF2B2B2B),
+                    if (isSelected) Color(0xFF006FC7) else Color(0xFF2B2B2B),
                     RoundedCornerShape(50)
                 )
                 .clickable { onClick() },
