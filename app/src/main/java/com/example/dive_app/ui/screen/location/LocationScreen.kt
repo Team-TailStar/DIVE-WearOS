@@ -50,7 +50,7 @@ fun LocationScreen(
                 locationViewModel = locationViewModel,
                 points = points,
                 onMarkerClick = onMarkerClick
-                // ⛔ setPagerScrollEnabled 제거
+                // setPagerScrollEnabled 제거
             )
         } else {
             val point = points[page - 1]

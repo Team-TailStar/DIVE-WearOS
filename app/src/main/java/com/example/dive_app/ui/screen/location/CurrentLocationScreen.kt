@@ -62,7 +62,7 @@ fun CurrentLocationScreen(
 
     // 안내 패널: 처음/모드전환 후 3초 표시(포인트 선택되면 즉시 숨김)
     var showInfoBox by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
+//    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
 
 
     // 주소 라벨
@@ -99,8 +99,15 @@ fun CurrentLocationScreen(
     val inSingle = idx >= 0
     val currentFP: FishingPoint? = if (inSingle) nearby[idx] else null
 
-    // 모드 바꾸면 안내 패널 3초 다시
-    LaunchedEffect(mode) { showInfoBox = true; delay(3000); showInfoBox = false }
+    LaunchedEffect(mode) {
+        if (mode == ViewMode.CURRENT) {
+            showInfoBox = true
+//            delay(3000)
+//            showInfoBox = false
+        } else {
+            showInfoBox = false
+        }
+    }
 
     // 모드 전환 시 핀치 줌 on/off (CURRENT에서 핀치줌 OFF, FISHING에서 ON)
     LaunchedEffect(mode) {
@@ -210,25 +217,23 @@ fun CurrentLocationScreen(
                     mode = newMode
 
                     if (newMode == ViewMode.FISHING) {
+                        idx = if (nearby.isNotEmpty()) 0 else -1
+                        // FISHING 전환 시 안내 패널 안 뜨게 확실히 끔
+                        showInfoBox = false
+
                         if (nearby.isNotEmpty()) {
-                            idx = 0               // 첫 포인트 선택
-                            showInfoBox = false
                             naverMapRef?.moveCamera(
                                 CameraUpdate.scrollTo(LatLng(nearby[0].lat, nearby[0].lon))
                                     .animate(CameraAnimation.Easing)
                             )
-                        } else {
-                            idx = -1
-                            showInfoBox = true
                         }
                     } else {
-                        // CURRENT로 전환 시
                         idx = -1
-                        showInfoBox = true
                         naverMapRef?.moveCamera(
                             CameraUpdate.scrollTo(LatLng(latitude, longitude))
                                 .animate(CameraAnimation.Easing)
                         )
+                        // CURRENT로 돌아오면 위의 LaunchedEffect(mode)가 3초 표시를 맡음
                     }
                 }
                 .padding(horizontal = 18.dp, vertical = 10.dp)
@@ -281,10 +286,10 @@ fun CurrentLocationScreen(
                                 else -> {
                                     if (inSingle) {
                                         idx = -1
-                                        naverMapRef?.moveCamera(
-                                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
-                                                .animate(CameraAnimation.Easing)
-                                        )
+//                                        naverMapRef?.moveCamera(
+//                                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
+//                                               .animate(CameraAnimation.Easing)
+//                                        )
                                     }
                                 }
                             }
@@ -320,7 +325,7 @@ fun CurrentLocationScreen(
                     val w = maxWidth
                     val h = w / 2
                     val shape = RoundedCornerShape(
-                        topStart = 30.dp, topEnd = 30.dp,
+                        topStart = 40.dp, topEnd = 40.dp,
                         bottomStart = h, bottomEnd = h
                     )
 
@@ -364,7 +369,7 @@ fun CurrentLocationScreen(
 
         // 초기/모드전환 안내 패널 (포인트 선택되면 숨김)
         AnimatedVisibility(
-            visible = showInfoBox && !inSingle,
+            visible = showInfoBox && mode == ViewMode.CURRENT && !inSingle,
             enter = fadeIn(), exit = fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
@@ -392,12 +397,10 @@ fun CurrentLocationScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (mode == ViewMode.FISHING)
-                                "오른쪽을 탭하면 한 개씩 보기"
-                            else region1,
+                            text = region1,
                             fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
                         )
-                        if (mode == ViewMode.CURRENT && region2.isNotBlank()) {
+                        if (region2.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
                             Text(text = region2, fontSize = 13.sp, color = Color(0xFFE0E0E0))
                         }
