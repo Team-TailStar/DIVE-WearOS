@@ -167,6 +167,8 @@ fun CurrentLocationScreen(
                                     icon = OverlayImage.fromResource(
                                         com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
                                     )
+                                    width = 48
+                                    height = 64
                                     anchor = PointF(0.5f, 1f)
                                     zIndex = 1
                                     setOnClickListener(Overlay.OnClickListener {
@@ -183,6 +185,8 @@ fun CurrentLocationScreen(
                                     icon = OverlayImage.fromResource(
                                         com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
                                     )
+                                    width = 48
+                                    height = 64
                                     anchor = PointF(0.5f, 1f)
                                     zIndex = 1
                                     setOnClickListener(Overlay.OnClickListener {
