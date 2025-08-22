@@ -2,6 +2,10 @@ package com.example.dive_app.ui.screen.location
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
@@ -258,47 +262,53 @@ fun CurrentLocationScreen(
             }
         }
 
-        // 좌/우/가운데 탭 영역 (상/하 100dp 가드)
+        // ▶ 좌/우 화살표 네비게이션 (낚시포인트 모드에서만 표시)
         if (mode == ViewMode.FISHING && hasPoints) {
+            // 왼쪽 화살표
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(0f)
-                    .pointerInput(hasPoints, inSingle) {
-                        detectTapGestures { offset ->
-                            val w = size.width
-                            val h = size.height
-                            val topGuard = 100.dp.toPx()
-                            val bottomGuard = 100.dp.toPx()
-                            if (offset.y < topGuard || offset.y > h - bottomGuard) return@detectTapGestures
+                    .align(Alignment.CenterStart)
+                    .padding(start = 8.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+//                    .background(Color(0x66000000))
+                    .then(
+                        if (inSingle) Modifier.clickable {
+                            idx = (idx - 1 + nearby.size) % nearby.size
+                            showInfoBox = false
+                        } else Modifier
+                    )
+                    .zIndex(3f),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = "이전",
+                    tint = if (inSingle) Color.White else Color.White.copy(alpha = 0.4f)
+                )
+            }
 
-                            when {
-                                // 오른쪽 탭 → 하나씩 보기 진입/다음
-                                offset.x > w * 0.75f -> {
-                                    idx = if (!inSingle) 0 else (idx + 1) % nearby.size
-                                    showInfoBox = false
-                                }
-                                // 왼쪽 탭 → 하나씩 보기 상태에서만 이전
-                                offset.x < w * 0.25f -> {
-                                    if (inSingle) {
-                                        idx = (idx - 1 + nearby.size) % nearby.size
-                                        showInfoBox = false
-                                    }
-                                }
-                                // 가운데 탭 → 하나씩 보기 종료(전체 마커 복귀)
-                                else -> {
-                                    if (inSingle) {
-                                        idx = -1
-//                                        naverMapRef?.moveCamera(
-//                                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
-//                                               .animate(CameraAnimation.Easing)
-//                                        )
-                                    }
-                                }
-                            }
-                        }
+            // 오른쪽 화살표
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 8.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+//                    .background(Color(0x66000000))
+                    .clickable {
+                        idx = if (!inSingle) 0 else (idx + 1) % nearby.size
+                        showInfoBox = false
                     }
-            )
+                    .zIndex(3f),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "다음",
+                    tint = Color.White
+                )
+            }
         }
 
         // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기일 때만)

@@ -84,7 +84,7 @@ dependencies {
 
     implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
     implementation("androidx.compose.runtime:runtime-livedata")
-
+    implementation("androidx.compose.material:material-icons-extended:<compose_version>")
     // 테스트/디버그
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
     androidTestImplementation(libs.ui.test.junit4)
