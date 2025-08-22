@@ -19,7 +19,6 @@ fun LocationScreen(
     locationViewModel: LocationViewModel
 ) {
     val points by fishingViewModel.points.collectAsState()
-
     val loc by locationViewModel.location.observeAsState()
     val lat = loc?.first ?: 0.0
     val lon = loc?.second ?: 0.0
@@ -30,6 +29,9 @@ fun LocationScreen(
         pageCount = { 1 + points.size }
     )
     val scope = rememberCoroutineScope()
+
+    // 🔹 Pager 스크롤 가능 여부 (현위치 화면에서는 기본 false)
+    var pagerScrollEnabled by remember { mutableStateOf(false) }
 
     val onMarkerClick: (FishingPoint) -> Unit = { clicked ->
         val eps = 1e-5
@@ -42,12 +44,17 @@ fun LocationScreen(
         }
     }
 
-    HorizontalPager(state = pagerState) { page ->
+    HorizontalPager(
+        state = pagerState,
+        userScrollEnabled = pagerScrollEnabled   // 🔹 여기!
+    ) { page ->
         if (page == 0) {
             CurrentLocationScreen(
                 locationViewModel = locationViewModel,
-                points = points,                    // ← 추가: 실제 포인트 전달
-                onMarkerClick = onMarkerClick
+                points = points,
+                onMarkerClick = onMarkerClick,
+                // 🔹 CHILD → PARENT로 스크롤 허용/차단 토글
+                setPagerScrollEnabled = { allow -> pagerScrollEnabled = allow }
             )
         } else {
             val point = points[page - 1]
@@ -61,5 +68,5 @@ fun LocationScreen(
             )
         }
     }
-
 }
+

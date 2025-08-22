@@ -48,7 +48,8 @@ private enum class ViewMode { CURRENT, FISHING }
 fun CurrentLocationScreen(
     locationViewModel: LocationViewModel,
     points: List<FishingPoint>,               // ← 실제 API 데이터 주입
-    onMarkerClick: (FishingPoint) -> Unit
+    onMarkerClick: (FishingPoint) -> Unit,
+    setPagerScrollEnabled: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
@@ -58,13 +59,16 @@ fun CurrentLocationScreen(
     val loc by locationViewModel.location.observeAsState()
     val latitude = loc?.first ?: 35.1151
     val longitude = loc?.second ?: 129.0415
-
     var mode by remember { mutableStateOf(ViewMode.CURRENT) }
 
     // 안내 패널: 처음/모드전환 후 3초 표시(포인트 선택되면 즉시 숨김)
     var showInfoBox by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
-
+    LaunchedEffect(Unit) { setPagerScrollEnabled(false) }
+    LaunchedEffect(mode) {
+        if (mode == ViewMode.CURRENT) setPagerScrollEnabled(false)
+        else setPagerScrollEnabled(true)
+    }
     // 주소 라벨
     LaunchedEffect(latitude, longitude) {
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
@@ -291,16 +295,17 @@ fun CurrentLocationScreen(
         }
 
         // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기일 때만)
-        LaunchedEffect(idx) {
+        LaunchedEffect(idx, mode) {
+            if (mode != ViewMode.FISHING) return@LaunchedEffect
             if (idx >= 0) {
-                nearby[idx].let { fp ->
-                    naverMapRef?.moveCamera(
-                        CameraUpdate.scrollTo(LatLng(fp.lat, fp.lon))
-                            .animate(CameraAnimation.Easing)
-                    )
-                }
+                val fp = nearby[idx]
+                naverMapRef?.moveCamera(
+                    CameraUpdate.scrollTo(LatLng(fp.lat, fp.lon))
+                        .animate(CameraAnimation.Easing)
+                )
             }
         }
+
 
         // 하단 카드(이름/거리/인디케이터) — 하나씩 보기일 때만
         if (mode == ViewMode.FISHING && hasPoints && inSingle) {
