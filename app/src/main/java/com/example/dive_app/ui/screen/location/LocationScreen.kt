@@ -11,7 +11,6 @@ import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.launch
 import com.example.dive_app.domain.model.FishingPoint
 import kotlin.math.abs
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LocationScreen(
@@ -38,20 +37,20 @@ fun LocationScreen(
                     kotlin.math.abs(it.lon - clicked.lon) < eps
         }.takeIf { it >= 0 } ?: points.indexOfFirst { it.name == clicked.name }
         if (idx >= 0) {
-            scope.launch { pagerState.animateScrollToPage(idx + 1) } // ← 코드로만 페이지 이동
+            scope.launch { pagerState.animateScrollToPage(idx + 1) } // ← 코드로만 이동
         }
     }
 
     HorizontalPager(
         state = pagerState,
-        userScrollEnabled = false   // ✅ 항상 스와이프 비활성화
+        userScrollEnabled = false   // ✅ 스와이프 전환 완전 차단
     ) { page ->
         if (page == 0) {
             CurrentLocationScreen(
                 locationViewModel = locationViewModel,
                 points = points,
                 onMarkerClick = onMarkerClick
-                // ✅ setPagerScrollEnabled 전달 삭제
+                // ⛔ setPagerScrollEnabled 제거
             )
         } else {
             val point = points[page - 1]
@@ -66,4 +65,3 @@ fun LocationScreen(
         }
     }
 }
-
