@@ -90,5 +90,8 @@ dependencies {
     androidTestImplementation(libs.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
+    implementation("androidx.wear.compose:compose-navigation:1.3.1")
+// 최신으로 맞추세요
+    implementation("androidx.wear.compose:compose-material:1.3.1")
 }
 
