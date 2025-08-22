@@ -114,18 +114,32 @@ fun AirQualityScreen(
 
         }
 
-        // ⬇ 하단 반원 카드를 화면 **아래 중앙**으로 고정
-        val (value, unit, title) = when (selectedType) {
-            "PM2.5" -> Triple(uiState.pm25Value, "µg/m³", "초미세먼지")
-            "PM10"  -> Triple(uiState.pm10Value, "µg/m³", "미세먼지")
-            else    -> Triple(uiState.o3Value,  "ppm",   "오존")
+        val (valueText, unit, title) = when (selectedType) {
+            "PM2.5" -> if (uiState.pm25Grade == 0) {
+                Triple("정보 없음", "", "초미세먼지")
+            } else {
+                Triple(uiState.pm25Value.toString(), "µg/m³", "초미세먼지")
+            }
+
+            "PM10" -> if (uiState.pm10Grade == 0) {
+                Triple("정보 없음", "", "미세먼지")
+            } else {
+                Triple(uiState.pm10Value.toString(), "µg/m³", "미세먼지")
+            }
+
+            else -> if (uiState.o3Grade == 0) {
+                Triple("정보 없음", "", "오존")
+            } else {
+                Triple(uiState.o3Value.toString(), "ppm", "오존")
+            }
         }
+
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 14.dp)
         ) {
-            BottomInfoPill(title, value.toString(), unit)
+            BottomInfoPill(title, valueText, unit)
         }
     }
 }
@@ -208,13 +222,11 @@ private fun BottomInfoPill(
     valueText: String,
     unit: String
 ) {
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val w = maxWidth
         val h = w / 2
         val shape = RoundedCornerShape(
-            topStart =50.dp, topEnd = 50.dp,
+            topStart = 50.dp, topEnd = 50.dp,
             bottomStart = h, bottomEnd = h
         )
 
@@ -231,8 +243,7 @@ private fun BottomInfoPill(
                     .clip(shape)
                     .background(Color(0xF01A1A1A))
                     .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 6.dp),
-
-                        contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
@@ -240,25 +251,20 @@ private fun BottomInfoPill(
                             .background(Color(0xFF343434), RoundedCornerShape(50.dp))
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Text(
-                            title,
-                            color = Color.White,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(title, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(1.dp))
-                    val styled = buildAnnotatedString {
-                        append(valueText); append(" ")
-                        if (unit == "µg/m³") {
-                            append("µg/m")
-                            pushStyle(SpanStyle(baselineShift = BaselineShift.Superscript, fontSize = 10.sp))
-                            append("3")
-                            pop()
-                        } else append(unit)
-                    }
-                    ValueLine(valueText, unit)
 
+                    if (valueText == "정보 없음") {
+                        Text(
+                            text = "정보 없음",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    } else {
+                        ValueLine(valueText, unit)
+                    }
                 }
             }
         }
