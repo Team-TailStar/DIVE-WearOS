@@ -1,4 +1,6 @@
 package com.example.dive_app
+import androidx.activity.compose.BackHandler
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 import com.example.dive_app.ui.screen.*
 import androidx.compose.foundation.layout.Box
@@ -18,10 +20,10 @@ import com.example.dive_app.ui.screen.alert.EmergencyScreen
 import com.example.dive_app.ui.screen.location.LocationScreen
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-
-// ✅ 새 페이지 임포트
 import com.example.dive_app.ui.screen.tide.TideDetailTimesPage
 import com.example.dive_app.ui.screen.tide.TideDetailSunMoonPage
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.ComponentActivity
 
 @Composable
 fun MainApp(
@@ -34,6 +36,21 @@ fun MainApp(
 ) {
     MyApplicationTheme {
         val navController = rememberNavController()
+        val context = LocalContext.current as ComponentActivity
+        val backStackEntry = navController.currentBackStackEntryAsState()
+        val currentRoute = backStackEntry.value?.destination?.route
+        BackHandler(enabled = true) {
+            if (currentRoute != "home") {
+                // 홈이 아니면 → 홈으로
+                navController.navigate("home") {
+                    launchSingleTop = true
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                }
+            } else {
+                // 홈이면 → 앱 종료
+                context.finish()
+            }
+        }
 
         LaunchedEffect(Unit) {
             healthVM.emergencyEvent
