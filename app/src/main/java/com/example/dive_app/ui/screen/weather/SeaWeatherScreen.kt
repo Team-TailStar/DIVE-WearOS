@@ -39,7 +39,7 @@ fun SeaWeatherScreen(navController: NavController,  weatherViewModel: WeatherVie
     ) {
         // 🔹 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.sea_background),
+            painter = painterResource(id = R.drawable.sea_background2),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop // 화면 꽉 차게
