@@ -25,6 +25,12 @@ import androidx.navigation.NavController
 import com.example.dive_app.domain.model.TideInfoData
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.zIndex
+
 /* ---------- 색 ---------- */
 private val Blue   = Color(0xFF3A78FF)   // ▼
 private val Red    = Color(0xFFFF6A5F)   // ▲
@@ -138,6 +144,54 @@ fun TideDetailTimesPage(
     ) {
         // 🔽 0.86f → 0.78f 로 축소 (양옆 여백 ↑)
         val contentWidth = maxWidth * 0.68f
+
+        // ◀ 왼쪽 버튼
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "이전",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(40.dp)
+                .padding(8.dp)
+                .alpha(0.5f)
+                .zIndex(10f)
+                .offset(x = (-8).dp)
+                .clickable {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedTide", tide)
+
+                    navController.navigate("tide/sunmoon") {
+                        launchSingleTop = true
+                        popUpTo("tide") { inclusive = false }
+                    }
+                }
+        )
+
+        // ▶ 오른쪽 버튼
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "다음",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(40.dp)
+                .padding(8.dp)
+                .alpha(0.5f)
+                .zIndex(10f)
+                .offset(x = (8).dp)
+                .clickable {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedTide", tide)
+
+                    navController.navigate("tide") {
+                        launchSingleTop = true
+                        popUpTo("tide") { inclusive = false }
+                    }
+                }
+        )
 
         LazyColumn(
             state = listState,
