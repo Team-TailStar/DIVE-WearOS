@@ -253,7 +253,7 @@ fun TideWatchScreen(
                     .then(dragModifier) // ← 이 dragModifier는 위에서 방금 만든 '누적' 버전
             ) {
                 val density = LocalDensity.current
-
+                val locationLabel = today?.pSelArea?.takeIf { it.isNotBlank() } ?: "위치정보없음"
                 val minSidePx = with(density) { if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx() }
                 val dialDp = with(density) { (minSidePx * 0.54f).toDp() }
                 val ringRadiusDp = dialDp / 2
@@ -340,7 +340,8 @@ fun TideWatchScreen(
                                 }
                             }
                         },
-                        onInfoClick = { showLegend = true }
+                        onInfoClick = { showLegend = true },
+                        locationLabel = locationLabel
                     )
 
 
@@ -379,13 +380,7 @@ fun TideWatchScreen(
                     )
 
 
-//                    // 맨 위 중앙 느낌표
-//                    InfoCircle(
-//                        onClick = { showLegend = true },
-//                        modifier = Modifier
-//                            .align(Alignment.TopCenter)
-//                            .padding(top = 8.dp)
-//                    )
+
 
                     // 오버레이 (설명창)
                     if (showLegend) {
@@ -408,7 +403,8 @@ private fun TideDial(
     modifier: Modifier = Modifier,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
-    onInfoClick: () -> Unit
+    onInfoClick: () -> Unit,
+    locationLabel: String
 ) {
     val ringW = 12f
     val tickW = 2f   // ✅ 기본 눈금 굵기 복구
@@ -513,18 +509,25 @@ private fun TideDial(
                 style = MaterialTheme.typography.title2,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(2.dp))
-            Box(
-                modifier = Modifier
-                    .size(12.dp)                              // 아주 작게
-                    .background(Color(0xFF2A2A2A), RoundedCornerShape(50))
-                    .clickable { onInfoClick() },             // 눌렀을 때 기존 오버레이 표시
-                contentAlignment = Alignment.Center
-            ) {
-                Text("!", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = locationLabel,
+                color = Color(0xFFE53935),
+                style = MaterialTheme.typography.caption2
+                    .copy(fontSize = 6.sp, fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                softWrap = false
+            )
 
+
+
+        }
+        InfoCircle(
+            onClick = onInfoClick,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = 10.dp)   // 다이얼 밖으로 살짝 내림(필요하면 8~12dp 조절)
+        )
     }
 }
 

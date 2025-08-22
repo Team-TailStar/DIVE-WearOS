@@ -123,7 +123,7 @@ fun WeatherScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     contentDescription = "이전",
-                    tint = Color(0xFFFF9800),
+                    tint = Color(0xBCFFFFFF),
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .size(40.dp)
@@ -140,7 +140,7 @@ fun WeatherScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = "다음",
-                    tint = Color(0xFFFF9800),
+                    tint = Color(0xBCFFFFFF),
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .size(40.dp)
