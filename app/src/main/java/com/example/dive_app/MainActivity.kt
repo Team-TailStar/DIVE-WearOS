@@ -161,6 +161,25 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     showWatchNotification("알림 오류", data)
                 }
             }
+            "/alert_accident" -> {
+                try {
+                    val json = JSONObject(data)
+                    val msg = json.optString("message", "위험지역 경고 발생")
+                    val region = json.optString("region", "")
+                    val place = json.optString("place_se", "")
+
+                    // 원하는 형태로 포맷
+                    val body = if (region.isNotBlank() && place.isNotBlank()) {
+                        "[$region $place] $msg"
+                    } else {
+                        msg
+                    }
+
+                    showWatchNotification("위험지역 경고", body)
+                } catch (e: Exception) {
+                    showWatchNotification("알림 오류", data)
+                }
+            }
             "/request_heart_rate" -> {
                 Log.d("WatchMsg", "📩 폰에서 심박수 요청 받음")
 
