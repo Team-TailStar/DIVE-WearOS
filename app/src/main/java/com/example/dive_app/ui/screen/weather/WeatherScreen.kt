@@ -50,7 +50,7 @@ fun WeatherScreen(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFFFAE198).copy(alpha = 1f),
-                        Color(0xFFFFC107).copy(alpha = 0.7f)
+                        Color(0xFFFFC821).copy(alpha = 0.7f)
                     )
                 )
             ))
@@ -68,7 +68,7 @@ fun WeatherScreen(
             Icon(
                 imageVector = Icons.Filled.WbSunny,
                 contentDescription = "날씨 아이콘",
-                tint = Color(0xFFFFC107),
+                tint = Color(0xFFDAA500),
                 modifier = Modifier
                     .size(60.dp)
                     .padding(top = 9.dp, bottom = 2.dp)
