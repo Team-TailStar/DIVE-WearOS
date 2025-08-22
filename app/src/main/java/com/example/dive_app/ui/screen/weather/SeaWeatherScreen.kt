@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,7 +79,7 @@ fun SeaWeatherScreen(
                 )
             }
 
-            Spacer(Modifier.height(base * 0.035f))
+            Spacer(Modifier.height(base * 0.02f))
 
             // ── 파고/파향: 라벨은 왼쪽 위, 값은 가운데
             Column(
@@ -108,17 +107,17 @@ fun SeaWeatherScreen(
                 color = Color(0xFF101010)
             )
         }
-
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "뒤로가기",
-            tint = Color.White,
+        //출처 표기(사진)
+        Text(
+            text = "배경 이미지: derich, Freepik",
+            fontSize = 5.sp,
+            color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(base * 0.08f)
-                .padding(start = 10.dp)
-                .clickable { navController.popBackStack() }
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp)   // 살짝 위로 띄움
         )
+
+
     }
 }
 
