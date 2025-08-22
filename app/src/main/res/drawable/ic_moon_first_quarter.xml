@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 전체 원 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12,2a10,10 0 1,0 0,20a10,10 0 1,0 0,-20z"/>
+    <!-- 왼쪽 반달 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2a10,10 0 1,0 0,20V2z"/>
+</vector>

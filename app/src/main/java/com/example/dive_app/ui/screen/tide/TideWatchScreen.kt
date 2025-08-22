@@ -256,7 +256,7 @@ fun TideWatchScreen(
                     .background(Color.Black)
             ) {
                 val density = LocalDensity.current
-                val locationLabel = today?.pSelArea?.takeIf { it.isNotBlank() } ?: "위치정보없음"
+                val locationLabel = today?.pName?.replace("<br>", "") ?: "위치정보없음"
                 val minSidePx = with(density) { if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx() }
                 val dialDp = with(density) { (minSidePx * 0.54f).toDp() }
                 val ringRadiusDp = dialDp / 2
