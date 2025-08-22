@@ -49,7 +49,6 @@ fun CurrentLocationScreen(
     locationViewModel: LocationViewModel,
     points: List<FishingPoint>,               // ← 실제 API 데이터 주입
     onMarkerClick: (FishingPoint) -> Unit,
-    setPagerScrollEnabled: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
@@ -61,14 +60,9 @@ fun CurrentLocationScreen(
     val longitude = loc?.second ?: 129.0415
     var mode by remember { mutableStateOf(ViewMode.CURRENT) }
 
-    // 안내 패널: 처음/모드전환 후 3초 표시(포인트 선택되면 즉시 숨김)
     var showInfoBox by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
-    LaunchedEffect(Unit) { setPagerScrollEnabled(false) }
-    LaunchedEffect(mode) {
-        if (mode == ViewMode.CURRENT) setPagerScrollEnabled(false)
-        else setPagerScrollEnabled(true)
-    }
+//    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
+
     // 주소 라벨
     LaunchedEffect(latitude, longitude) {
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
@@ -104,7 +98,12 @@ fun CurrentLocationScreen(
     val currentFP: FishingPoint? = if (inSingle) nearby[idx] else null
 
     // 모드 바꾸면 안내 패널 3초 다시
-    LaunchedEffect(mode) { showInfoBox = true; delay(3000); showInfoBox = false; }
+    LaunchedEffect(mode) { showInfoBox = true; delay(3000); showInfoBox = false }
+
+    // 모드 전환 시 핀치 줌 on/off (CURRENT에서 핀치줌 OFF, FISHING에서 ON)
+    LaunchedEffect(mode) {
+        naverMapRef?.uiSettings?.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
+    }
 
     Box(
         modifier = Modifier
@@ -121,6 +120,8 @@ fun CurrentLocationScreen(
                 mv.getMapAsync { nMap ->
                     naverMapRef = nMap
                     nMap.uiSettings.isZoomControlEnabled = false
+                    // 현재 모드에 맞춰 핀치줌 초기 설정
+                    nMap.uiSettings.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
 
                     // 현위치 오버레이
                     nMap.locationOverlay.apply {
@@ -228,27 +229,24 @@ fun CurrentLocationScreen(
                         )
                     }
                 }
-
-
                 .padding(horizontal = 18.dp, vertical = 10.dp)
-        )  {
-        if (mode == ViewMode.FISHING) {
-            Text(
-                text = "낚시포인트",
-                color = Color.White,
-                fontSize = 12.sp,   // 낚시 글자는 크게
-                fontWeight = FontWeight.Bold
-            )
-        } else {
-            Text(
-                text = "현위치",
-                color = Color.White,
-                fontSize = 14.sp,   // 현위치는 작게
-                fontWeight = FontWeight.Bold
-            )
+        ) {
+            if (mode == ViewMode.FISHING) {
+                Text(
+                    text = "낚시포인트",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Text(
+                    text = "현위치",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
-    }
-
 
         // 좌/우/가운데 탭 영역 (상/하 100dp 가드)
         if (mode == ViewMode.FISHING && hasPoints) {
@@ -281,7 +279,6 @@ fun CurrentLocationScreen(
                                 else -> {
                                     if (inSingle) {
                                         idx = -1
-                                        // 카메라를 내 위치로 복귀(선호 안 하면 이 줄 삭제)
                                         naverMapRef?.moveCamera(
                                             CameraUpdate.scrollTo(LatLng(latitude, longitude))
                                                 .animate(CameraAnimation.Easing)
@@ -306,7 +303,6 @@ fun CurrentLocationScreen(
             }
         }
 
-
         // 하단 카드(이름/거리/인디케이터) — 하나씩 보기일 때만
         if (mode == ViewMode.FISHING && hasPoints && inSingle) {
             AnimatedVisibility(
@@ -316,11 +312,11 @@ fun CurrentLocationScreen(
             ) {
                 BoxWithConstraints(
                     modifier = Modifier
-                        .fillMaxWidth(0.68f)       // 현위치 상자와 동일 비율
-                        .padding(bottom = 13.dp)    // 동일 여백
+                        .fillMaxWidth(0.68f)
+                        .padding(bottom = 13.dp)
                 ) {
                     val w = maxWidth
-                    val h = w / 2                  // 반원 높이
+                    val h = w / 2
                     val shape = RoundedCornerShape(
                         topStart = 30.dp, topEnd = 30.dp,
                         bottomStart = h, bottomEnd = h
@@ -342,7 +338,7 @@ fun CurrentLocationScreen(
                             Text(
                                 text = currentFP?.point_nm ?: "-",
                                 color = Color.White,
-                                fontSize = 18.sp,                       // 현위치 상자 타이틀과 톤 맞춤
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Spacer(Modifier.height(2.dp))
@@ -363,7 +359,6 @@ fun CurrentLocationScreen(
                 }
             }
         }
-
 
         // 초기/모드전환 안내 패널 (포인트 선택되면 숨김)
         AnimatedVisibility(
@@ -408,6 +403,30 @@ fun CurrentLocationScreen(
                 }
             }
         }
+
+        // 🔹 CURRENT 모드에서만: 지도 영역에서만 더블탭 리센터 (상/하 가드)
+        if (mode == ViewMode.CURRENT) {
+            val topGuard = 100.dp      // 상단 UI 보호 영역 (칩 등)
+            val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호 영역
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topGuard, bottom = bottomGuard) // ← 버튼/패널 안 덮게!
+                    .zIndex(5f)
+                    .pointerInput(mode, latitude, longitude) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                naverMapRef?.moveCamera(
+                                    CameraUpdate.scrollTo(LatLng(latitude, longitude))
+                                        .animate(CameraAnimation.Easing)
+                                )
+                            }
+                        )
+                    }
+            )
+        }
+
     }
 
     // 수명주기 정리
@@ -426,7 +445,6 @@ fun CurrentLocationScreen(
             )
         }
     }
-
 }
 
 private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {

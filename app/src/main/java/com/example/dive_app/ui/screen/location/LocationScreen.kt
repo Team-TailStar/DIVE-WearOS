@@ -11,6 +11,7 @@ import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.launch
 import com.example.dive_app.domain.model.FishingPoint
 import kotlin.math.abs
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LocationScreen(
@@ -30,9 +31,6 @@ fun LocationScreen(
     )
     val scope = rememberCoroutineScope()
 
-    // 🔹 Pager 스크롤 가능 여부 (현위치 화면에서는 기본 false)
-    var pagerScrollEnabled by remember { mutableStateOf(false) }
-
     val onMarkerClick: (FishingPoint) -> Unit = { clicked ->
         val eps = 1e-5
         val idx = points.indexOfFirst {
@@ -40,21 +38,20 @@ fun LocationScreen(
                     kotlin.math.abs(it.lon - clicked.lon) < eps
         }.takeIf { it >= 0 } ?: points.indexOfFirst { it.name == clicked.name }
         if (idx >= 0) {
-            scope.launch { pagerState.animateScrollToPage(idx + 1) }
+            scope.launch { pagerState.animateScrollToPage(idx + 1) } // ← 코드로만 페이지 이동
         }
     }
 
     HorizontalPager(
         state = pagerState,
-        userScrollEnabled = pagerScrollEnabled   // 🔹 여기!
+        userScrollEnabled = false   // ✅ 항상 스와이프 비활성화
     ) { page ->
         if (page == 0) {
             CurrentLocationScreen(
                 locationViewModel = locationViewModel,
                 points = points,
-                onMarkerClick = onMarkerClick,
-                // 🔹 CHILD → PARENT로 스크롤 허용/차단 토글
-                setPagerScrollEnabled = { allow -> pagerScrollEnabled = allow }
+                onMarkerClick = onMarkerClick
+                // ✅ setPagerScrollEnabled 전달 삭제
             )
         } else {
             val point = points[page - 1]
