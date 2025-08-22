@@ -1,4 +1,7 @@
 package com.example.dive_app.ui.screen.location
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 
 import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
@@ -338,30 +341,41 @@ fun CurrentLocationScreen(
                             .background(Color(0xF01A1A1A))
                             .padding(vertical = 12.dp, horizontal = 16.dp)
                     ) {
+                        // 하단 카드 내부
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
+                            AutoResizeText(                      // ← 제목 자동 축소
                                 text = currentFP?.point_nm ?: "-",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                maxFontSize = 15.sp,
+                                minFontSize = 12.sp
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = currentFP?.point_dt ?: "",
                                 color = Color(0xFF58CCFF),
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = "${idx + 1} / ${nearby.size}",
                                 color = Color(0xFFBDBDBD),
-                                fontSize = 11.sp
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
+
                     }
                 }
             }
@@ -398,7 +412,7 @@ fun CurrentLocationScreen(
                     ) {
                         Text(
                             text = region1,
-                            fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
+                            fontSize =16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
                         )
                         if (region2.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
@@ -409,7 +423,7 @@ fun CurrentLocationScreen(
             }
         }
 
-        // ✅ CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
+        // CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
         if (mode == ViewMode.CURRENT) {
             val topGuard = 100.dp      // 상단 UI 보호(칩)
             val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호
@@ -451,6 +465,45 @@ fun CurrentLocationScreen(
         }
     }
 }
+
+@Composable
+private fun AutoResizeText(
+    text: String,
+    maxFontSize: TextUnit =13.sp,
+    minFontSize: TextUnit = 3.sp,
+    color: Color = Color.White,
+    fontWeight: FontWeight = FontWeight.ExtraBold,
+    modifier: Modifier = Modifier
+) {
+    var fontSize by remember(text) { mutableStateOf<TextUnit>(maxFontSize) }
+    var ready by remember(text) { mutableStateOf(false) }
+
+    Text(
+        text = text,
+        color = color,
+        fontWeight = fontWeight,
+        fontSize = fontSize,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,       // ✅ … 대신 잘라내고 폰트 줄이기 트리거
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth(),
+        onTextLayout = { result ->
+            if (!ready && result.didOverflowWidth) {
+                val next = (fontSize.value - 1).sp
+                if (next >= minFontSize) {
+                    fontSize = next
+                } else {
+                    ready = true
+                }
+            } else {
+                ready = true
+            }
+        }
+    )
+}
+
+
 
 private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val out = FloatArray(1)
