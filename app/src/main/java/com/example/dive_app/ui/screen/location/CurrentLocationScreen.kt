@@ -262,54 +262,54 @@ fun CurrentLocationScreen(
             }
         }
 
-        // ▶ 좌/우 화살표 네비게이션 (낚시포인트 모드에서만 표시)
-        if (mode == ViewMode.FISHING && hasPoints) {
-            // 왼쪽 화살표
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 8.dp)
-                    .size(36.dp)
-                    .clip(CircleShape)
-//                    .background(Color(0x66000000))
-                    .then(
-                        if (inSingle) Modifier.clickable {
-                            idx = (idx - 1 + nearby.size) % nearby.size
-                            showInfoBox = false
-                        } else Modifier
-                    )
-                    .zIndex(3f),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = "이전",
-                    tint = if (inSingle) Color.White else Color.White.copy(alpha = 0.4f)
-                )
-            }
-
-            // 오른쪽 화살표
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 8.dp)
-                    .size(36.dp)
-                    .clip(CircleShape)
-//                    .background(Color(0x66000000))
-                    .clickable {
-                        idx = if (!inSingle) 0 else (idx + 1) % nearby.size
-                        showInfoBox = false
-                    }
-                    .zIndex(3f),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "다음",
-                    tint = Color.White
-                )
-            }
-        }
+//        // ▶ 좌/우 화살표 네비게이션 (낚시포인트 모드에서만 표시)
+//        if (mode == ViewMode.FISHING && hasPoints) {
+//            // 왼쪽 화살표
+//            Box(
+//                modifier = Modifier
+//                    .align(Alignment.CenterStart)
+//                    .padding(start = 8.dp)
+//                    .size(36.dp)
+//                    .clip(CircleShape)
+////                    .background(Color(0x66000000))
+//                    .then(
+//                        if (inSingle) Modifier.clickable {
+//                            idx = (idx - 1 + nearby.size) % nearby.size
+//                            showInfoBox = false
+//                        } else Modifier
+//                    )
+//                    .zIndex(3f),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+//                    contentDescription = "이전",
+//                    tint = if (inSingle) Color.White else Color.White.copy(alpha = 0.4f)
+//                )
+//            }
+//
+//            // 오른쪽 화살표
+//            Box(
+//                modifier = Modifier
+//                    .align(Alignment.CenterEnd)
+//                    .padding(end = 8.dp)
+//                    .size(36.dp)
+//                    .clip(CircleShape)
+////                    .background(Color(0x66000000))
+//                    .clickable {
+//                        idx = if (!inSingle) 0 else (idx + 1) % nearby.size
+//                        showInfoBox = false
+//                    }
+//                    .zIndex(3f),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+//                    contentDescription = "다음",
+//                    tint = Color.White
+//                )
+//            }
+//        }
 
         // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기일 때만)
         LaunchedEffect(idx, mode) {
@@ -351,41 +351,77 @@ fun CurrentLocationScreen(
                             .background(Color(0xF01A1A1A))
                             .padding(vertical = 12.dp, horizontal = 16.dp)
                     ) {
-                        // 하단 카드 내부
                         Column(
                             modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            AutoResizeText(                      // ← 제목 자동 축소
+                            // 위쪽: 포인트명
+                            AutoResizeText(
                                 text = currentFP?.point_nm ?: "-",
-                                maxFontSize = 15.sp,
-                                minFontSize = 12.sp
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = currentFP?.point_dt ?: "",
-                                color = Color(0xFF58CCFF),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
+                                maxFontSize = 13.sp,
+                                minFontSize = 12.sp,
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            Spacer(Modifier.height(2.dp))
+
+                            // 중앙: 거리 + 좌우 화살표
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // 왼쪽 화살표
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "이전",
+                                    tint = Color.White.copy(alpha = if (inSingle) 0.3f else 0f),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable(enabled = inSingle) {
+                                            idx = (idx - 1 + nearby.size) % nearby.size
+                                            showInfoBox = false
+                                        }
+                                )
+
+                                // 거리
+                                Text(
+                                    text = currentFP?.point_dt ?: "",
+                                    color = Color(0xFF58CCFF),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Clip,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                                )
+
+                                // 오른쪽 화살표
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "다음",
+                                    tint = Color.White.copy(alpha = if (inSingle) 0.3f else 0f),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            idx = if (!inSingle) 0 else (idx + 1) % nearby.size
+                                            showInfoBox = false
+                                        }
+                                )
+                            }
+
+                            // 아래쪽: 인덱스
                             Text(
                                 text = "${idx + 1} / ${nearby.size}",
                                 color = Color(0xFFBDBDBD),
-                                fontSize = 11.sp,
+                                fontSize = 8.sp,
                                 maxLines = 1,
                                 softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
+                                overflow = TextOverflow.Clip,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-
                     }
                 }
             }
