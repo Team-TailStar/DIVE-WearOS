@@ -133,11 +133,10 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 val msg = String(messageEvent.data)
                 try {
                     val json = JSONObject(msg)
-                    val typhoon = json.getString("typhoon")
-                    val distance = json.getDouble("distance")
-                    val body = "$typhoon 접근: 약 ${"%.1f".format(distance)} km"
+                    val title = json.getString("title")
+                    val body = json.getString("message")
 
-                    showWatchNotification("태풍 경고", body)
+                    showWatchNotification(title, body)
                 } catch (e: Exception) {
                     showWatchNotification("알림 오류", msg)
                 }
@@ -145,8 +144,9 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             "/weather_alert" -> {
                 try {
                     val json = JSONObject(data)
-                    val msg = json.getString("weather_alert")
-                    showWatchNotification("기상 경고", msg)
+                    val title = json.getString("title")
+                    val msg = json.getString("message")
+                    showWatchNotification(title, msg)
                 } catch (e: Exception) {
                     showWatchNotification("알림 오류", data)
                 }
@@ -155,27 +155,19 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             "/tide_alert" -> {
                 try {
                     val json = JSONObject(data)
-                    val msg = json.getString("tide_alert")
-                    showWatchNotification("물때 경고", msg)
+                    val title = json.getString("title")
+                    val msg = json.getString("message")
+                    showWatchNotification(title, msg)
                 } catch (e: Exception) {
                     showWatchNotification("알림 오류", data)
                 }
             }
-            "/alert_accident" -> {
+            "/accident_alert" -> {
                 try {
                     val json = JSONObject(data)
-                    val msg = json.optString("message", "위험지역 경고 발생")
-                    val region = json.optString("region", "")
-                    val place = json.optString("place_se", "")
-
-                    // 원하는 형태로 포맷
-                    val body = if (region.isNotBlank() && place.isNotBlank()) {
-                        "[$region $place] $msg"
-                    } else {
-                        msg
-                    }
-
-                    showWatchNotification("위험지역 경고", body)
+                    val title = json.getString("title")
+                    val msg = json.getString("message")
+                    showWatchNotification(title, msg)
                 } catch (e: Exception) {
                     showWatchNotification("알림 오류", data)
                 }
@@ -213,7 +205,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     /** 알림 표시 */
     private fun showWatchNotification(title: String, message: String) {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.drawable.ic_stat_sea_friend)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
