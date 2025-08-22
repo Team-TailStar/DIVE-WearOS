@@ -116,13 +116,13 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         showWatchNotification("테스트 알림", "워치 알림이 정상 동작합니다")
     }
 
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        if (ev?.action == MotionEvent.ACTION_DOWN) {
-//            tapDetector.onTapped()
-//        }
-//        return super.dispatchTouchEvent(ev)
-//
-//    }
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev?.action == MotionEvent.ACTION_DOWN) {
+            tapDetector.onTapped()
+        }
+        return super.dispatchTouchEvent(ev)
+
+    }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
         val path = messageEvent.path
