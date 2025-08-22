@@ -1,5 +1,8 @@
 package com.example.dive_app.ui.screen
-
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -78,6 +81,40 @@ fun AirQualityScreen(
             .background(Color.Black),
         contentAlignment = Alignment.TopCenter
     ) {
+        // AirQualityScreen의 맨 바깥 Box 안에 추가
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "이전",
+            tint = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(40.dp)
+                .padding(8.dp)
+                .clickable {
+                    navController.navigate("weather") {
+                        launchSingleTop = true
+                        popUpTo("airQuality") { inclusive = false }
+                    }
+                }
+        )
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "다음",
+            tint = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(40.dp)
+                .padding(8.dp)
+                .clickable {
+                    navController.navigate("sea_weather") {
+                        launchSingleTop = true
+                        popUpTo("airQuality") { inclusive = false }
+                    }
+                }
+        )
+
         // ⬇ 상단 콘텐츠 (날짜 + 3행만)
         Column(
             modifier = Modifier
