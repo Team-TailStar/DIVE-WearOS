@@ -60,8 +60,10 @@ fun CurrentLocationScreen(
     val longitude = loc?.second ?: 129.0415
     var mode by remember { mutableStateOf(ViewMode.CURRENT) }
 
+    // 안내 패널: 처음/모드전환 후 3초 표시(포인트 선택되면 즉시 숨김)
     var showInfoBox by remember { mutableStateOf(true) }
-//    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
+    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
+
 
     // 주소 라벨
     LaunchedEffect(latitude, longitude) {
@@ -120,7 +122,7 @@ fun CurrentLocationScreen(
                 mv.getMapAsync { nMap ->
                     naverMapRef = nMap
                     nMap.uiSettings.isZoomControlEnabled = false
-                    // 현재 모드에 맞춰 핀치줌 초기 설정
+                    // 모드에 맞춰 핀치줌 초기 설정
                     nMap.uiSettings.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
 
                     // 현위치 오버레이
@@ -230,7 +232,7 @@ fun CurrentLocationScreen(
                     }
                 }
                 .padding(horizontal = 18.dp, vertical = 10.dp)
-        ) {
+        )  {
             if (mode == ViewMode.FISHING) {
                 Text(
                     text = "낚시포인트",
@@ -404,19 +406,20 @@ fun CurrentLocationScreen(
             }
         }
 
-        // 🔹 CURRENT 모드에서만: 지도 영역에서만 더블탭 리센터 (상/하 가드)
+        // ✅ CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
         if (mode == ViewMode.CURRENT) {
-            val topGuard = 100.dp      // 상단 UI 보호 영역 (칩 등)
-            val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호 영역
-
+            val topGuard = 100.dp      // 상단 UI 보호(칩)
+            val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = topGuard, bottom = bottomGuard) // ← 버튼/패널 안 덮게!
+                    .padding(top = topGuard, bottom = bottomGuard)
                     .zIndex(5f)
-                    .pointerInput(mode, latitude, longitude) {
+                    .pointerInput(mode, latitude, longitude) { // mode를 key에 포함하여 재생성 보장
                         detectTapGestures(
                             onDoubleTap = {
+                                // 이중 가드: 콜백 시점에 모드가 바뀌었으면 무시
+                                if (mode != ViewMode.CURRENT) return@detectTapGestures
                                 naverMapRef?.moveCamera(
                                     CameraUpdate.scrollTo(LatLng(latitude, longitude))
                                         .animate(CameraAnimation.Easing)
@@ -426,7 +429,6 @@ fun CurrentLocationScreen(
                     }
             )
         }
-
     }
 
     // 수명주기 정리
