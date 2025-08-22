@@ -209,7 +209,7 @@ private fun HistoryPage(records: List<HealthRecord>) {
                 else { axisMinimum = 80f; axisMaximum = 100f }
                 gridColor = android.graphics.Color.DKGRAY
                 textColor = android.graphics.Color.WHITE
-                textSize = 8f
+                textSize = 4f
             }
             chart.xAxis.apply {
                 gridColor = android.graphics.Color.DKGRAY
