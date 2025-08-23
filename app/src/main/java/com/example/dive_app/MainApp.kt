@@ -91,6 +91,12 @@ fun MainApp(
                 ) {
                     // 0) 모드 선택
                     composable("mode") {
+                        LaunchedEffect(Unit) {
+                            (context as MainActivity).requestTide()
+                            (context as MainActivity).requestLocation()
+                            (context as MainActivity).requestWeather()
+                            (context as MainActivity).requestPoint()
+                        }
                         SwipeDismissContainer(onDismiss = { context.finish() }) {
                             ModeScreen(
                                 navController = navController,
@@ -157,8 +163,7 @@ fun MainApp(
                                 if (mode == AppMode.FISHING) dismissToMode(navController) else dismissToHome(navController)
                             }
                         ) {
-                            val tide =
-                                navController.previousBackStackEntry?.savedStateHandle?.get<TideInfoData>("selectedTide")
+                            val tide = tideVM.uiState.value.tideList.firstOrNull()
 
                             if (tide != null) {
                                 if (mode == AppMode.FISHING) {
@@ -201,8 +206,7 @@ fun MainApp(
                                 if (mode == AppMode.FISHING) dismissToMode(navController) else dismissToHome(navController)
                             }
                         ) {
-                            val tide =
-                                navController.previousBackStackEntry?.savedStateHandle?.get<TideInfoData>("selectedTide")
+                            val tide = tideVM.uiState.value.tideList.firstOrNull()
 
                             if (tide != null) {
                                 if (mode == AppMode.FISHING) {

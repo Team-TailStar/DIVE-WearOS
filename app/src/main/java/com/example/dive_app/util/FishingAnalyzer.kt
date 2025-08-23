@@ -128,13 +128,13 @@ object FishingAnalyzer {
         month: Int
     ): String {
         val speciesOnly = extractSpecies(target)
-        Log.d("fishTTT", "parsed speciesOnly=$speciesOnly")
+        //Log.d("fishTTT", "parsed speciesOnly=$speciesOnly")
 
         val scores = scoreSpecies(temp, current, hour, mul, month)
 
         // 점수 목록에서 speciesOnly 어종만 필터링
         val filtered = scores.filter { it.name in speciesOnly }
-        Log.d("fishTTT", "parsed speciesOnly=$filtered")
+        //Log.d("fishTTT", "parsed speciesOnly=$filtered")
 
         return filtered
             .sortedByDescending { it.total }
