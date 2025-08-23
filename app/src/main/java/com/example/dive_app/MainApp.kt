@@ -85,6 +85,10 @@ fun MainApp(
             }
         }
 
+        LaunchedEffect(Unit) {
+            healthVM.startMockStream(periodMs = 3000L, occasionalAlert = false)
+        }
+
         Scaffold { innerPadding ->
             Box(Modifier.padding(innerPadding)) {
                 SwipeDismissableNavHost(

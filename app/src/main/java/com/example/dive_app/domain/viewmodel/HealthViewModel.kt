@@ -7,8 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.dive_app.data.db.AppDatabase
 import com.example.dive_app.data.repository.HealthRepository
 import com.example.dive_app.domain.model.HealthRecord
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.random.Random
 
 // 응급 이벤트 종류
 sealed class EmergencyEvent {
@@ -49,6 +55,55 @@ class HealthViewModel(application: Application) : AndroidViewModel(application) 
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
+    }
+
+    private var mockJob: Job? = null
+
+    /** 실시간 Mock 스트리밍 시작 (기본 3초 주기) */
+    fun startMockStream(periodMs: Long = 3000L, occasionalAlert: Boolean = false) {
+        if (mockJob != null) return  // 중복 시작 방지
+        mockJob = viewModelScope.launch {
+            var t = 0.0
+            val r = Random(System.currentTimeMillis())
+            while (isActive) {
+                t += 0.5
+
+                // 심박수: 75±(사인파 6 + 잡음 0~3)
+                var bpm = (78 + (sin(t) * 6).roundToInt() + r.nextInt(-3, 4))
+                    .coerceIn(55, 115)
+
+                // SpO2: 97±1
+                var spo2 = (97 + r.nextInt(-1, 2)).coerceIn(92, 100)
+
+                // 가끔 경보 테스트(옵션)
+                if (occasionalAlert && r.nextDouble() < 0.03) bpm = r.nextInt(36, 40)   // 저심박
+                if (occasionalAlert && r.nextDouble() < 0.02) spo2 = r.nextInt(86, 90)  // 저산소
+
+                addHealthData(bpm, spo2)
+                delay(periodMs)
+            }
+        }
+    }
+
+    /** 실시간 Mock 스트리밍 중지 */
+    fun stopMockStream() {
+        mockJob?.cancel()
+        mockJob = null
+    }
+
+    /** 과거 기록 시드(그래프 테스트용) */
+    fun seedMockHistory(count: Int = 30) {
+        viewModelScope.launch {
+            val r = Random(System.currentTimeMillis())
+            repeat(count) { i ->
+                val theta = i / 6.0
+                val bpm = (76 + (sin(theta) * 6).roundToInt() + r.nextInt(-2, 3))
+                    .coerceIn(55, 115)
+                val spo2 = (97 + r.nextInt(-1, 2)).coerceIn(92, 100)
+                addHealthData(bpm, spo2)
+                delay(30)  // 너무 빨리 넣지 않게 살짝 지연
+            }
+        }
     }
 
     /** 심박수 업데이트 */
