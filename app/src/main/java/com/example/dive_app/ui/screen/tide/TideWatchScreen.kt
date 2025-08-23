@@ -339,7 +339,7 @@ fun TideWatchScreen(
                                             ?.savedStateHandle
                                             ?.set("selectedTide", selected)
 
-                                        navController.navigate("tide/sunmoon") {
+                                        navController.navigate("tide/week") {
                                             launchSingleTop = true
                                             popUpTo("tide") { inclusive = false }
                                         }

@@ -83,7 +83,7 @@ fun TideDetailSunMoonPage(
                         navController.currentBackStackEntry
                             ?.savedStateHandle
                             ?.set("selectedTide", tide)
-                        navController.navigate("tide") {
+                        navController.navigate("tide/week") {
                             launchSingleTop = true
                             popUpTo("tide") { inclusive = false }
                         }

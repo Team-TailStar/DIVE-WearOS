@@ -52,6 +52,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.geometry.Offset
+import com.example.dive_app.ui.screen.tide.TideWeekScreen
+
 @Composable
 fun MainApp(
     healthVM: HealthViewModel,
@@ -114,7 +116,7 @@ fun MainApp(
                             // 낚시 모드면 홈을 스킵하고 tide로 보냄
                             LaunchedEffect(mode) {
                                 if (mode == AppMode.FISHING) {
-                                    navController.navigate("tide") {
+                                    navController.navigate("tide/times") {
                                         launchSingleTop = true
                                         popUpTo("home") { inclusive = false }
                                     }
@@ -152,6 +154,21 @@ fun MainApp(
                             } else {
                                 TideWatchScreen(navController, tideVM)
                             }
+                        }
+                    }
+
+                    composable("tide/week") {
+                        SwipeDismissContainer(
+                            onDismiss = {
+                                if (mode == AppMode.FISHING) dismissToMode(navController) else dismissToHome(navController)
+                            }
+                        ) {
+                            // 일반 모드에서만 화살표 보이게
+                            TideWeekScreen(
+                                navController = navController,
+                                tideVM = tideVM,
+                                showDetailArrows = (mode != AppMode.FISHING)
+                            )
                         }
                     }
 
@@ -290,7 +307,7 @@ fun MainApp(
                                     mode = mode,
                                     navController = navController,
                                     downSwipeNextRoute = "location",
-                                    nextRoute = "tide" // loop
+                                    nextRoute = "tide/times" // loop
                                 ) {
                                     WeatherScreen(navController, weatherVM, showDetailArrows = false)
                                 }
