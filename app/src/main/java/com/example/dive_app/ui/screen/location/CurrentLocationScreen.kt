@@ -1,4 +1,7 @@
 package com.example.dive_app.ui.screen.location
+import com.example.dive_app.util.FishingAnalyzer
+import java.time.LocalDateTime
+
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -6,9 +9,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-
 import androidx.compose.material3.Text
-import kotlinx.coroutines.delay
 import android.location.Location
 import android.graphics.PointF
 import android.util.Log
@@ -44,7 +45,6 @@ import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.domain.viewmodel.TideViewModel
 import com.example.dive_app.domain.viewmodel.WeatherViewModel
-import com.example.dive_app.util.FishingAnalyzer
 import com.example.dive_app.util.LocationUtil
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
@@ -54,7 +54,6 @@ import com.naver.maps.map.NaverMap
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.Overlay
 import com.naver.maps.map.overlay.OverlayImage
-import java.time.LocalDateTime
 
 private enum class ViewMode { CURRENT, FISHING }
 
@@ -65,74 +64,78 @@ fun CurrentLocationScreen(
     locationViewModel: LocationViewModel,
     weatherViewModel : WeatherViewModel,
     tideViewModel : TideViewModel,
-    points: List<FishingPoint>,               // ← 실제 API 데이터 주입
+    points: List<FishingPoint>,
     onMarkerClick: (FishingPoint) -> Unit,
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
 
-    var region1 by remember { mutableStateOf("로딩중...") }
-    var region2 by remember { mutableStateOf("") }
+    // 실제 위치 (fallback 제거: null이면 표시/이동하지 않음)
     val loc by locationViewModel.location.observeAsState()
-    val latitude = loc?.first ?: 35.1151
-    val longitude = loc?.second ?: 129.0415
-    var mode by remember { mutableStateOf(ViewMode.CURRENT) }
-
-    // 안내 패널: 처음/모드전환 후 3초 표시(포인트 선택되면 즉시 숨김)
-    var showInfoBox by remember { mutableStateOf(true) }
-//    LaunchedEffect(Unit) { delay(3000); showInfoBox = false }
-
-
-    // 주소 라벨
-    LaunchedEffect(latitude, longitude) {
-        (context as MainActivity).requestLocation()
-        (context as MainActivity).requestTide()
-        (context as MainActivity).requestWeather()
-        LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
-            region1 = r1; region2 = r2
-        }
-    }
+    val lat: Double? = loc?.first
+    val lon: Double? = loc?.second
     val weather by weatherViewModel.uiState
     val tide by tideViewModel.uiState
 
-    // NaverMap 참조 & 카메라 초기화
+    // 주소 라벨
+    var region1 by remember { mutableStateOf("위치 확인중...") }
+    var region2 by remember { mutableStateOf("") }
+
+    // 최초 1회: 데이터 요청 트리거 (위치/조석/날씨)
+    LaunchedEffect(Unit) {
+        (context as MainActivity).requestLocation()
+        (context as MainActivity).requestTide()
+        (context as MainActivity).requestWeather()
+    }
+
+    // 주소는 loc가 준비된 뒤에만 갱신
+    LaunchedEffect(loc) {
+        if (lat != null && lon != null) {
+            LocationUtil.fetchAddressFromCoords(lat, lon) { r1, r2 ->
+                region1 = r1; region2 = r2
+            }
+        } else {
+            region1 = "위치 확인중..."
+            region2 = ""
+        }
+    }
+
+    var mode by remember { mutableStateOf(ViewMode.CURRENT) }
+    var showInfoBox by remember { mutableStateOf(true) }
+
+    // NaverMap 참조
     var naverMapRef by remember { mutableStateOf<NaverMap?>(null) }
-    var cameraInitialized by remember { mutableStateOf(false) }
 
     // 우리가 만든 마커들
     val fishingMarkers = remember { mutableStateListOf<Marker>() }
 
-    // 가까운 순 리스트 (내 위치와 30m 미만 제외)
-    val nearby by remember(latitude, longitude, points) {
+    // 가까운 순 리스트 (loc 없으면 빈 리스트)
+    val nearby by remember(lat, lon, points) {
         mutableStateOf(
-            points
-                .filter { p -> p.lat != 0.0 || p.lon != 0.0 }
-                .filter { p -> distanceMeters(latitude, longitude, p.lat, p.lon) >= 30f }
-                .map { fp ->
-                    val d = distanceMeters(latitude, longitude, fp.lat, fp.lon)
-                    fp.copy(point_dt = String.format("%.1f km", d / 1000f))
-                }
-                .sortedBy { distanceMeters(latitude, longitude, it.lat, it.lon) }
+            if (lat != null && lon != null) {
+                points
+                    .filter { p -> p.lat != 0.0 || p.lon != 0.0 }
+                    .filter { p -> distanceMeters(lat, lon, p.lat, p.lon) >= 30f }
+                    .map { fp ->
+                        val d = distanceMeters(lat, lon, fp.lat, fp.lon)
+                        fp.copy(point_dt = String.format("%.1f km", d / 1000f))
+                    }
+                    .sortedBy { distanceMeters(lat, lon, it.lat, it.lon) }
+            } else emptyList()
         )
     }
 
-    // ‘하나씩 보기’ 인덱스: -1 이면 전체 마커 모드
+    // ‘하나씩 보기’ 인덱스
     var idx by remember { mutableStateOf(-1) }
     val hasPoints = nearby.isNotEmpty()
     val inSingle = idx >= 0
     val currentFP: FishingPoint? = if (inSingle) nearby[idx] else null
 
     LaunchedEffect(mode) {
-        if (mode == ViewMode.CURRENT) {
-            showInfoBox = true
-//            delay(3000)
-//            showInfoBox = false
-        } else {
-            showInfoBox = false
-        }
+        showInfoBox = (mode == ViewMode.CURRENT)
     }
 
-    // 모드 전환 시 핀치 줌 on/off (CURRENT에서 핀치줌 OFF, FISHING에서 ON)
+    // 모드 전환 시 핀치줌 on/off
     LaunchedEffect(mode) {
         naverMapRef?.uiSettings?.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
     }
@@ -152,112 +155,62 @@ fun CurrentLocationScreen(
                 mv.getMapAsync { nMap ->
                     naverMapRef = nMap
                     nMap.uiSettings.isZoomControlEnabled = false
-                    // 모드에 맞춰 핀치줌 초기 설정
                     nMap.uiSettings.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
 
-                    // 현위치 오버레이
+                    // 현위치 오버레이: loc가 있을 때만 보이기/갱신
                     nMap.locationOverlay.apply {
-                        isVisible = true
-                        position = LatLng(latitude, longitude)
-                    }
-
-                    fishingMarkers.forEach { it.map = null }
-                    fishingMarkers.clear()
-
-                    val now = LocalDateTime.now()
-                    val hour = now.hour
-                    val month = now.monthValue
-
-                    nearby.forEach { fp ->
-                        fishingMarkers += Marker().apply {
-                            position = LatLng(fp.lat, fp.lon)
-                            icon = OverlayImage.fromResource(
-                                com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
-                            )
-                            width = 48
-                            height = 64
-                            anchor = PointF(0.5f, 1f)
-                            zIndex = 1
-                            val best = FishingAnalyzer.recommendFish(
-                                target = fp.target,
-                                temp = weather.obsWt?.toString()?.toDoubleOrNull() ?: 19.0,   // 수온
-                                current = 2.4,//tide.wavePrd?.toString()?.toDoubleOrNull() ?: 1.0,  // 조류
-                                hour = hour,        // 현재 시간
-                                mul = tide.tideList.firstOrNull()?.pMul
-                                    ?.toString()
-                                    ?.replace("[^0-9]".toRegex(), "")
-                                    ?.takeIf { it.isNotBlank() }   // ✅ 빈 문자열이면 null 처리
-                                    ?.toIntOrNull() ?: 1,
-                                month = month
-                            )
-                            // ✅ 마커 캡션에 추천어종 표시
-                            Log.d("FishingDebug", "📍 point=${fp.point_nm}, ${fp.target} lat=${fp.lat}, lon=${fp.lon}, best=$best")
-
-                            captionText = best ?: ""
-
-                            captionColor = android.graphics.Color.BLACK
-                            captionTextSize = 12f
-
-                            setOnClickListener(Overlay.OnClickListener {
-                                onMarkerClick(fp); true
-                            })
-                            map = nMap
+                        isVisible = (lat != null && lon != null)
+                        if (lat != null && lon != null) {
+                            position = LatLng(lat, lon)
                         }
-                    }
-
-
-                    // 최초 1회만 내 위치로 이동
-                    if (!cameraInitialized) {
-                        nMap.moveCamera(
-                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
-                                .animate(CameraAnimation.Easing)
-                        )
-                        nMap.moveCamera(CameraUpdate.zoomTo(12.5))
-                        cameraInitialized = true
                     }
 
                     // 마커 재생성
-                    //fishingMarkers.forEach { it.map = null }
-                    //fishingMarkers.clear()
+                    fishingMarkers.forEach { it.map = null }
+                    fishingMarkers.clear()
 
                     if (mode == ViewMode.FISHING && hasPoints) {
-                        if (inSingle) {
-                            // 하나씩 보기: 현재 포인트 하나만 표시
-                            currentFP?.let { fp ->
-                                fishingMarkers += Marker().apply {
-                                    position = LatLng(fp.lat, fp.lon)
-                                    icon = OverlayImage.fromResource(
-                                        com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
-                                    )
-                                    width = 48
-                                    height = 64
-                                    anchor = PointF(0.5f, 1f)
-                                    zIndex = 1
-                                    setOnClickListener(Overlay.OnClickListener {
-                                        onMarkerClick(fp); true
-                                    })
-                                    map = nMap
-                                }
-                            }
-                        } else {
-                            // 전체 마커 표시
-                            nearby.forEach { fp ->
-                                fishingMarkers += Marker().apply {
-                                    position = LatLng(fp.lat, fp.lon)
-                                    icon = OverlayImage.fromResource(
-                                        com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
-                                    )
-                                    width = 48
-                                    height = 64
-                                    anchor = PointF(0.5f, 1f)
-                                    zIndex = 1
-                                    setOnClickListener(Overlay.OnClickListener {
-                                        onMarkerClick(fp); true
-                                    })
-                                    map = nMap
-                                }
+                        val addMarker: (FishingPoint) -> Unit = { fp ->
+                            // 추천어종 계산
+                            val now = LocalDateTime.now()
+                            val hour = now.hour
+                            val month = now.monthValue
+                            val best = FishingAnalyzer.recommendFish(
+                                target = fp.target,
+                                temp   = weather.obsWt?.toString()?.toDoubleOrNull() ?: 19.0,   // 수온 fallback
+                                current = 2.4,  // 조류(데이터 없으면 임시값)
+                                hour = hour,
+                                mul = tide.tideList.firstOrNull()?.pMul
+                                    ?.toString()
+                                    ?.replace("[^0-9]".toRegex(), "")
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.toIntOrNull() ?: 1,
+                                month = month
+                            )
+
+                            fishingMarkers += Marker().apply {
+                                position = LatLng(fp.lat, fp.lon)
+                                icon = OverlayImage.fromResource(
+                                    com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
+                                )
+                                width = 48
+                                height = 64
+                                anchor = PointF(0.5f, 1f)
+                                zIndex = 1
+
+                                // 💡 여기서 캡션 표시
+                                captionText = best ?: ""
+                                captionColor = android.graphics.Color.BLACK
+                                captionTextSize = 12f
+
+                                setOnClickListener(Overlay.OnClickListener {
+                                    onMarkerClick(fp); true
+                                })
+                                map = naverMapRef
                             }
                         }
+
+                        if (inSingle) currentFP?.let(addMarker) else nearby.forEach(addMarker)
                     }
                 }
             }
@@ -276,7 +229,7 @@ fun CurrentLocationScreen(
                 )
         )
 
-        // 상단: 모드 토글 칩(한 개만)
+        // 상단: 모드 토글 칩
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -291,9 +244,7 @@ fun CurrentLocationScreen(
 
                     if (newMode == ViewMode.FISHING) {
                         idx = if (nearby.isNotEmpty()) 0 else -1
-                        // FISHING 전환 시 안내 패널 안 뜨게 확실히 끔
                         showInfoBox = false
-
                         if (nearby.isNotEmpty()) {
                             naverMapRef?.moveCamera(
                                 CameraUpdate.scrollTo(LatLng(nearby[0].lat, nearby[0].lon))
@@ -302,82 +253,26 @@ fun CurrentLocationScreen(
                         }
                     } else {
                         idx = -1
-                        naverMapRef?.moveCamera(
-                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
-                                .animate(CameraAnimation.Easing)
-                        )
-                        // CURRENT로 돌아오면 위의 LaunchedEffect(mode)가 3초 표시를 맡음
+                        // CURRENT로 돌아올 때도 loc가 있어야 이동
+                        if (lat != null && lon != null) {
+                            naverMapRef?.moveCamera(
+                                CameraUpdate.scrollTo(LatLng(lat, lon))
+                                    .animate(CameraAnimation.Easing)
+                            )
+                        }
                     }
                 }
                 .padding(horizontal = 18.dp, vertical = 10.dp)
         )  {
-            if (mode == ViewMode.FISHING) {
-                Text(
-                    text = "낚시포인트",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Text(
-                    text = "현위치",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = if (mode == ViewMode.FISHING) "낚시포인트" else "현위치",
+                color = Color.White,
+                fontSize = if (mode == ViewMode.FISHING) 12.sp else 14.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
-//        // ▶ 좌/우 화살표 네비게이션 (낚시포인트 모드에서만 표시)
-//        if (mode == ViewMode.FISHING && hasPoints) {
-//            // 왼쪽 화살표
-//            Box(
-//                modifier = Modifier
-//                    .align(Alignment.CenterStart)
-//                    .padding(start = 8.dp)
-//                    .size(36.dp)
-//                    .clip(CircleShape)
-////                    .background(Color(0x66000000))
-//                    .then(
-//                        if (inSingle) Modifier.clickable {
-//                            idx = (idx - 1 + nearby.size) % nearby.size
-//                            showInfoBox = false
-//                        } else Modifier
-//                    )
-//                    .zIndex(3f),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Icon(
-//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-//                    contentDescription = "이전",
-//                    tint = if (inSingle) Color.White else Color.White.copy(alpha = 0.4f)
-//                )
-//            }
-//
-//            // 오른쪽 화살표
-//            Box(
-//                modifier = Modifier
-//                    .align(Alignment.CenterEnd)
-//                    .padding(end = 8.dp)
-//                    .size(36.dp)
-//                    .clip(CircleShape)
-////                    .background(Color(0x66000000))
-//                    .clickable {
-//                        idx = if (!inSingle) 0 else (idx + 1) % nearby.size
-//                        showInfoBox = false
-//                    }
-//                    .zIndex(3f),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Icon(
-//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-//                    contentDescription = "다음",
-//                    tint = Color.White
-//                )
-//            }
-//        }
-
-        // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기일 때만)
+        // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기)
         LaunchedEffect(idx, mode) {
             if (mode != ViewMode.FISHING) return@LaunchedEffect
             if (idx >= 0) {
@@ -389,11 +284,10 @@ fun CurrentLocationScreen(
             }
         }
 
-        // 하단 카드(이름/거리/인디케이터) — 하나씩 보기일 때만
+        // 하단 카드 — 하나씩 보기일 때만
         if (mode == ViewMode.FISHING && hasPoints && inSingle) {
             AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(), exit = fadeOut(),
+                visible = true, enter = fadeIn(), exit = fadeOut(),
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 BoxWithConstraints(
@@ -410,8 +304,7 @@ fun CurrentLocationScreen(
 
                     Box(
                         modifier = Modifier
-                            .width(w)
-                            .height(h)
+                            .width(w).height(h)
                             .shadow(14.dp, shape)
                             .clip(shape)
                             .background(Color(0xF01A1A1A))
@@ -430,21 +323,17 @@ fun CurrentLocationScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // 위쪽: 포인트명
                             AutoResizeText(
                                 text = currentFP?.point_nm ?: "-",
                                 maxFontSize = 13.sp,
                                 minFontSize = 12.sp,
                                 modifier = Modifier.fillMaxWidth()
                             )
-
-                            // 중앙: 거리 + 좌우 화살표
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // 왼쪽 화살표
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "이전",
@@ -456,8 +345,6 @@ fun CurrentLocationScreen(
                                             showInfoBox = false
                                         }
                                 )
-
-                                // 거리
                                 Text(
                                     text = currentFP?.point_dt ?: "",
                                     color = Color(0xFF58CCFF),
@@ -469,8 +356,6 @@ fun CurrentLocationScreen(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                                 )
-
-                                // 오른쪽 화살표
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = "다음",
@@ -483,8 +368,6 @@ fun CurrentLocationScreen(
                                         }
                                 )
                             }
-
-                            // 아래쪽: 인덱스
                             Text(
                                 text = "${idx + 1} / ${nearby.size}",
                                 color = Color(0xFFBDBDBD),
@@ -501,7 +384,7 @@ fun CurrentLocationScreen(
             }
         }
 
-        // 초기/모드전환 안내 패널 (포인트 선택되면 숨김)
+        // 초기/모드전환 안내 패널
         AnimatedVisibility(
             visible = showInfoBox && mode == ViewMode.CURRENT && !inSingle,
             enter = fadeIn(), exit = fadeOut(),
@@ -532,7 +415,9 @@ fun CurrentLocationScreen(
                     ) {
                         Text(
                             text = region1,
-                            fontSize =16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
                         )
                         if (region2.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
@@ -543,24 +428,25 @@ fun CurrentLocationScreen(
             }
         }
 
-        // CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
+        // CURRENT에서만: 지도 더블탭 → 현위치 리센터 (loc가 있을 때만)
         if (mode == ViewMode.CURRENT) {
-            val topGuard = 100.dp      // 상단 UI 보호(칩)
-            val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호
+            val topGuard = 100.dp
+            val bottomGuard = 120.dp
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = topGuard, bottom = bottomGuard)
                     .zIndex(5f)
-                    .pointerInput(mode, latitude, longitude) { // mode를 key에 포함하여 재생성 보장
+                    .pointerInput(mode, loc) {
                         detectTapGestures(
                             onDoubleTap = {
-                                // 이중 가드: 콜백 시점에 모드가 바뀌었으면 무시
                                 if (mode != ViewMode.CURRENT) return@detectTapGestures
-                                naverMapRef?.moveCamera(
-                                    CameraUpdate.scrollTo(LatLng(latitude, longitude))
-                                        .animate(CameraAnimation.Easing)
-                                )
+                                if (lat != null && lon != null) {
+                                    naverMapRef?.moveCamera(
+                                        CameraUpdate.scrollTo(LatLng(lat, lon))
+                                            .animate(CameraAnimation.Easing)
+                                    )
+                                }
                             }
                         )
                     }
@@ -577,11 +463,24 @@ fun CurrentLocationScreen(
             mapView.onPause(); mapView.onStop(); mapView.onDestroy()
         }
     }
-    LaunchedEffect(latitude, longitude, mode) {
-        if (mode == ViewMode.CURRENT) {
-            naverMapRef?.moveCamera(
-                CameraUpdate.scrollTo(LatLng(latitude, longitude))
-            )
+
+    // ⭐ 지도와 위치가 준비되면 CURRENT 모드에서 한 번 정확히 센터링
+    LaunchedEffect(naverMapRef, loc, mode) {
+        if (mode != ViewMode.CURRENT) return@LaunchedEffect
+        val a = lat ?: return@LaunchedEffect
+        val b = lon ?: return@LaunchedEffect
+        naverMapRef?.moveCamera(
+            CameraUpdate
+                .toCameraPosition(com.naver.maps.map.CameraPosition(LatLng(a, b), 12.5))
+                .animate(CameraAnimation.Easing)
+        )
+    }
+
+    // 위치 바뀌면 오버레이 위치 갱신
+    LaunchedEffect(naverMapRef, lat, lon) {
+        naverMapRef?.locationOverlay?.apply {
+            isVisible = (lat != null && lon != null)
+            if (lat != null && lon != null) position = LatLng(lat, lon)
         }
     }
 }
@@ -589,7 +488,7 @@ fun CurrentLocationScreen(
 @Composable
 private fun AutoResizeText(
     text: String,
-    maxFontSize: TextUnit =13.sp,
+    maxFontSize: TextUnit = 13.sp,
     minFontSize: TextUnit = 3.sp,
     color: Color = Color.White,
     fontWeight: FontWeight = FontWeight.ExtraBold,
@@ -605,7 +504,7 @@ private fun AutoResizeText(
         fontSize = fontSize,
         maxLines = 1,
         softWrap = false,
-        overflow = TextOverflow.Clip,       // ✅ … 대신 잘라내고 폰트 줄이기 트리거
+        overflow = TextOverflow.Clip,
         textAlign = TextAlign.Center,
         modifier = modifier.fillMaxWidth(),
         onTextLayout = { result ->
@@ -622,8 +521,6 @@ private fun AutoResizeText(
         }
     )
 }
-
-
 
 private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val out = FloatArray(1)
