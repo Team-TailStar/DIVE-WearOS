@@ -2,9 +2,13 @@ package com.example.dive_app
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
@@ -24,6 +28,7 @@ import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -172,6 +177,32 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     showWatchNotification("알림 오류", data)
                 }
             }
+            "/slope_alert" -> {
+                try {
+                    val json = JSONObject(data)
+                    val title = json.getString("title")
+                    val msg = json.getString("message")
+                    showWatchNotification(title, msg)
+                } catch (e: Exception) {
+                    showWatchNotification("알림 오류", data)
+                }
+                triggerVibration()
+//                val mediaPlayer = MediaPlayer.create(
+//                    this,
+//                    android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
+//                ).apply {
+//                    isLooping = true
+//                    start()
+//                }
+//
+//                lifecycleScope.launch {
+//                    delay(20_000) // 30초
+//                    if (mediaPlayer.isPlaying) {
+//                        mediaPlayer.stop()
+//                        mediaPlayer.release()
+//                    }
+//                }
+            }
             "/request_heart_rate" -> {
                 Log.d("WatchMsg", "📩 폰에서 심박수 요청 받음")
 
@@ -184,6 +215,19 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 replyToPhone("/response_heart_rate", responseJson.toString())
             }
             else -> repo.handleMessage(path, data)
+        }
+    }
+
+    private fun triggerVibration() {
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // 0.2초 진동 → 0.1초 멈춤 → 0.3초 진동
+            val effect = VibrationEffect.createWaveform(longArrayOf(0, 200, 100, 300), -1)
+            vibrator.vibrate(effect)
+        } else {
+            // 구버전 호환
+            vibrator.vibrate(longArrayOf(0, 200, 100, 300), -1)
         }
     }
 
