@@ -25,6 +25,8 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.SwipeToDismissValue
 import androidx.wear.compose.material.rememberSwipeToDismissBoxState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun MainApp(
@@ -33,7 +35,8 @@ fun MainApp(
     weatherVM: WeatherViewModel,
     tideVM: TideViewModel,
     locationVM: LocationViewModel,
-    airQualityVM: AirQualityViewModel
+    airQualityVM: AirQualityViewModel,
+    appModeVM: AppModeViewModel // 추가
 ) {
     MyApplicationTheme {
         val navController = rememberSwipeDismissableNavController()
@@ -58,11 +61,25 @@ fun MainApp(
             Box(Modifier.padding(innerPadding)) {
                 SwipeDismissableNavHost(
                     navController = navController,
-                    startDestination = "home"
+                    startDestination = "mode"   // ← 변경: 홈 대신 모드
                 ) {
-                    // 홈: 스와이프 → 앱 종료
+                    // 0) 모드 선택
+                    composable("mode") {
+                        SwipeDismissContainer(onDismiss = { context.finish() }) {
+                            ModeScreen(
+                                navController = navController,
+                                appModeVM = appModeVM,
+                                onDismissApp = { context.finish() }
+                            )
+                        }
+                    }
+
+                    // 1) 홈: 스와이프 → 앱 종료
                     composable("home") {
                         SwipeDismissContainer(onDismiss = { context.finish() }) {
+                            // 홈이 모드를 알아야 하면 아래처럼 모드 읽어서 넘겨
+                            // val mode by appModeVM.mode.collectAsState()
+                            // HomeScreen(navController, mode)  // 시그니처 바꿀 수 있으면 이 방식
                             HomeScreen(navController)
                         }
                     }

@@ -35,6 +35,7 @@ import org.json.JSONObject
  * - ViewModel + Compose UI 연결
  */
 class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListener {
+    private val appModeViewModel: AppModeViewModel by viewModels()
 
     // ViewModels
     private val healthViewModel: HealthViewModel by viewModels()
@@ -91,9 +92,11 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 weatherViewModel,
                 tideViewModel,
                 locationViewModel,
-                airQualityViewModel
+                airQualityViewModel,
+                appModeViewModel
             )
         }
+
 
         // SpO₂ 수집
         lifecycleScope.launch {
