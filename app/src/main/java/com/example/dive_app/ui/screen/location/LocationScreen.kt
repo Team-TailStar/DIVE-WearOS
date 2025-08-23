@@ -20,7 +20,8 @@ fun LocationScreen(
     fishingViewModel: FishingPointViewModel,
     weatherViewModel: WeatherViewModel,
     tideViewModel: TideViewModel,
-    locationViewModel: LocationViewModel
+    locationViewModel: LocationViewModel,
+    isAppFishingMode: Boolean
 ) {
     val points by fishingViewModel.points.collectAsState()
     val loc by locationViewModel.location.observeAsState()
@@ -56,8 +57,9 @@ fun LocationScreen(
                 weatherViewModel = weatherViewModel,
                 tideViewModel = tideViewModel,
                 points = points,
-                onMarkerClick = onMarkerClick
+                onMarkerClick = onMarkerClick,
                 // setPagerScrollEnabled 제거
+                isAppFishingMode = isAppFishingMode
             )
         } else {
             val point = points[page - 1]

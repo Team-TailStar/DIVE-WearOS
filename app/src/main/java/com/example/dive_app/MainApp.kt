@@ -308,10 +308,18 @@ fun MainApp(
                             VerticalSwipeNavigate(
                                 mode = mode,
                                 navController = navController,
-                                upRoute = "health",     // ↑ health
-                                downRoute = "tide"      // ↓ tide  ✅ 원하는 동작
+                                upRoute = "health",
+                                downRoute = "tide"
                             ) {
-                                LocationScreen(navController, fishingVM, weatherVM, tideVM, locationVM)
+                                LocationScreen(
+                                    navController = navController,
+                                    fishingViewModel = fishingVM,
+                                    weatherViewModel = weatherVM,
+                                    tideViewModel = tideVM,
+                                    locationViewModel = locationVM,
+                                    // ★ 여기! 앱 전체 모드 == FISHING 전달
+                                    isAppFishingMode = (mode == AppMode.FISHING)
+                                )
                             }
                         }
                     }

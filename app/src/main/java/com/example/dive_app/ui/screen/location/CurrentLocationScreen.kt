@@ -54,6 +54,8 @@ import com.naver.maps.map.NaverMap
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.Overlay
 import com.naver.maps.map.overlay.OverlayImage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 private enum class ViewMode { CURRENT, FISHING }
 
@@ -66,6 +68,7 @@ fun CurrentLocationScreen(
     tideViewModel : TideViewModel,
     points: List<FishingPoint>,
     onMarkerClick: (FishingPoint) -> Unit,
+    isAppFishingMode: Boolean = false
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
@@ -131,13 +134,29 @@ fun CurrentLocationScreen(
     val inSingle = idx >= 0
     val currentFP: FishingPoint? = if (inSingle) nearby[idx] else null
 
-    LaunchedEffect(mode) {
+    // ★ 앱 모드에 따라 내부 ViewMode 동기화
+    LaunchedEffect(isAppFishingMode) {
+        mode = if (isAppFishingMode) ViewMode.FISHING else ViewMode.CURRENT
+        // FISHING으로 진입할 땐 ‘현위치부터’ 시작
+        idx = -1
         showInfoBox = (mode == ViewMode.CURRENT)
-    }
 
-    // 모드 전환 시 핀치줌 on/off
-    LaunchedEffect(mode) {
-        naverMapRef?.uiSettings?.isZoomGesturesEnabled = (mode != ViewMode.CURRENT)
+        // 카메라도 모드에 맞춰 정리
+        val a = loc?.first
+        val b = loc?.second
+        if (mode == ViewMode.FISHING && a != null && b != null) {
+            naverMapRef?.moveCamera(
+                CameraUpdate.scrollTo(LatLng(a, b)).animate(CameraAnimation.Easing)
+            )
+        } else if (mode == ViewMode.CURRENT && a != null && b != null) {
+            naverMapRef?.moveCamera(
+                CameraUpdate
+                    .toCameraPosition(
+                        com.naver.maps.map.CameraPosition(LatLng(a, b), 12.5)
+                    )
+                    .animate(CameraAnimation.Easing)
+            )
+        }
     }
 
     Box(
@@ -244,11 +263,11 @@ fun CurrentLocationScreen(
                     mode = newMode
 
                     if (newMode == ViewMode.FISHING) {
-                        idx = if (nearby.isNotEmpty()) 0 else -1
+                        idx = -1                      // ★ 현위치부터 시작
                         showInfoBox = false
-                        if (nearby.isNotEmpty()) {
+                        if (lat != null && lon != null) {
                             naverMapRef?.moveCamera(
-                                CameraUpdate.scrollTo(LatLng(nearby[0].lat, nearby[0].lon))
+                                CameraUpdate.scrollTo(LatLng(lat, lon))
                                     .animate(CameraAnimation.Easing)
                             )
                         }
@@ -475,6 +494,39 @@ fun CurrentLocationScreen(
                 .toCameraPosition(com.naver.maps.map.CameraPosition(LatLng(a, b), 12.5))
                 .animate(CameraAnimation.Easing)
         )
+    }
+    LaunchedEffect(mode, nearby, loc) {
+        if (mode != ViewMode.FISHING) return@LaunchedEffect
+        // nearby/loc가 바뀔 때마다(재계산 시) 루프가 재시작됩니다.
+        var i = -1
+        while (isActive && mode == ViewMode.FISHING) {
+            val total = 1 + nearby.size   // 1(현위치) + 포인트 수
+            i = (i + 1) % maxOf(total, 1)
+
+            if (i == 0) {
+                // 현위치 스텝
+                idx = -1
+                if (lat != null && lon != null) {
+                    naverMapRef?.moveCamera(
+                        CameraUpdate
+                            .toCameraPosition(
+                                com.naver.maps.map.CameraPosition(LatLng(lat, lon), 12.5)
+                            )
+                            .animate(CameraAnimation.Easing)
+                    )
+                }
+            } else {
+                // 포인트 스텝 (i-1 번째 포인트)
+                val next = i - 1
+                if (next in nearby.indices) {
+                    idx = next
+                    // 카메라 이동은 기존의 LaunchedEffect(idx, mode)에서 처리됨
+                    // (수동 화살표 전환과 동일 동작 보장)
+                }
+            }
+
+            delay(3000) // ★ 3초 간격
+        }
     }
 
     // 위치 바뀌면 오버레이 위치 갱신
