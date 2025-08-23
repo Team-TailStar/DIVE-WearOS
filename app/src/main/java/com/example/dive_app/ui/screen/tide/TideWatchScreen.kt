@@ -467,6 +467,51 @@ private fun TideDial(
                 useCenter = false,
                 style = Stroke(width = ringW, cap = StrokeCap.Butt)
             )
+// ── 게이지 색상(취향대로 살짝 따뜻한 톤)
+            val gaugeColor = Color(0xFFFFC107)
+
+// 현재시간을 0~1 비율로
+            val ratio = centerTime.toSecondOfDay() / 86400f
+            val sweepNow = 360f * ratio
+            val startDeg = -90f // 0시 = 위쪽
+
+// 1) 게이지 채움(0시→현재시간). 링과 동일 폭, 끝은 둥글게
+            drawArc(
+                color = gaugeColor.copy(alpha = 0.35f),
+                startAngle = startDeg,
+                sweepAngle = sweepNow,
+                useCenter = false,
+                style = Stroke(width = ringW, cap = StrokeCap.Round)
+            )
+
+//// 2) 현재시간 바늘(센터→링)
+////    살짝 테두리를 주고 싶으면 아래 drawLine을 한 번 더 진한 회색으로 먼저 그린 뒤 얇게 덮어도 됨
+//            val aNow = timeToAngleRad(centerTime)
+//            val tipX = cx + rRing * cos(aNow)
+//            val tipY = cy + rRing * sin(aNow)
+
+//// 바늘 본체
+//            drawLine(
+//                color = gaugeColor,
+//                start = Offset(cx, cy),
+//                end   = Offset(tipX, tipY),
+//                strokeWidth = 3.5f,
+//                cap = StrokeCap.Round
+//            )
+//
+//// 바늘 헤드(끝 점)
+//            drawCircle(
+//                color = gaugeColor,
+//                radius = 6f,
+//                center = Offset(tipX, tipY)
+//            )
+//
+//// 센터 캡(가운데 동그라미)
+//            drawCircle(
+//                color = Color(0xFF121212),
+//                radius = 4.5f,
+//                center = Offset(cx, cy)
+//            )
 
             // 강조 구간
             segments.forEach { s ->
