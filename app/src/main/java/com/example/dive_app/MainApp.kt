@@ -1,6 +1,18 @@
 package com.example.dive_app
 import androidx.compose.ui.Alignment
 import androidx.wear.compose.material.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.zIndex
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -37,7 +49,9 @@ import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.distinctUntilChanged
-
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
 @Composable
 fun MainApp(
     healthVM: HealthViewModel,
@@ -119,11 +133,11 @@ fun MainApp(
                                     mode = mode,
                                     navController = navController,
                                     nextRoute = "tide/times",
+                                    upSwipeNextRoute = "location",   // ↑ location
+                                    downSwipeNextRoute = "health",   // ↓ health
                                     beforeNavigate = {
-                                        // times 화면이 읽을 수 있도록 오늘 데이터를 저장
                                         tideVM.uiState.value.tideList.firstOrNull()?.let { t ->
-                                            navController.currentBackStackEntry
-                                                ?.savedStateHandle?.set("selectedTide", t)
+                                            navController.currentBackStackEntry?.savedStateHandle?.set("selectedTide", t)
                                         }
                                     }
                                 ) {
@@ -134,6 +148,7 @@ fun MainApp(
                             }
                         }
                     }
+
 
                     // tide/times -> tide/sunmoon
                     composable("tide/times") {
@@ -151,6 +166,7 @@ fun MainApp(
                                         mode = mode,
                                         navController = navController,
                                         nextRoute = "tide/sunmoon",
+                                        downSwipeNextRoute = "location",
                                         beforeNavigate = {
                                             navController.currentBackStackEntry
                                                 ?.savedStateHandle?.set("selectedTide", tide)
@@ -167,6 +183,7 @@ fun MainApp(
                                     AutoAdvancePage(
                                         mode = mode,
                                         navController = navController,
+                                        downSwipeNextRoute = "location",
                                         nextRoute = "air_quality"
                                     ) { MissingTidePlaceholder() }
                                 } else {
@@ -192,7 +209,9 @@ fun MainApp(
                                     AutoAdvancePage(
                                         mode = mode,
                                         navController = navController,
+                                        downSwipeNextRoute = "location",
                                         nextRoute = "air_quality"
+
                                     ) {
                                         TideDetailSunMoonPage(tide, navController, showDetailArrows = false)
                                     }
@@ -205,6 +224,7 @@ fun MainApp(
                                     AutoAdvancePage(
                                         mode = mode,
                                         navController = navController,
+                                        downSwipeNextRoute = "location",
                                         nextRoute = "air_quality"
                                     ) { MissingTidePlaceholder() }
                                 } else {
@@ -225,6 +245,7 @@ fun MainApp(
                                 AutoAdvancePage(
                                     mode = mode,
                                     navController = navController,
+                                    downSwipeNextRoute = "location",
                                     nextRoute = "sea_weather"
                                 ) {
                                     AirQualityScreen(navController, airQualityVM, showDetailArrows = false)
@@ -244,6 +265,7 @@ fun MainApp(
                                 AutoAdvancePage(
                                     mode = mode,
                                     navController = navController,
+                                    downSwipeNextRoute = "location",
                                     nextRoute = "weather"
                                 ) {
                                     SeaWeatherScreen(navController, weatherVM, showDetailArrows = false)
@@ -263,6 +285,7 @@ fun MainApp(
                                 AutoAdvancePage(
                                     mode = mode,
                                     navController = navController,
+                                    downSwipeNextRoute = "location",
                                     nextRoute = "tide" // loop
                                 ) {
                                     WeatherScreen(navController, weatherVM, showDetailArrows = false)
@@ -272,16 +295,24 @@ fun MainApp(
                             }
                         }
                     }
-
                     composable("location") {
                         SwipeDismissContainer(
                             onDismiss = {
                                 if (mode == AppMode.FISHING) dismissToMode(navController) else dismissToHome(navController)
                             }
                         ) {
-                            LocationScreen(navController, fishingVM, locationVM)
+                            VerticalSwipeNavigate(
+                                mode = mode,
+                                navController = navController,
+                                upRoute = "health",     // ↑ health
+                                downRoute = "tide"      // ↓ tide  ✅ 원하는 동작
+                            ) {
+                                LocationScreen(navController, fishingVM, locationVM)
+                            }
                         }
                     }
+
+
                     composable("emergency") {
                         SwipeDismissContainer(
                             onDismiss = {
@@ -297,9 +328,22 @@ fun MainApp(
                                 if (mode == AppMode.FISHING) dismissToMode(navController) else dismissToHome(navController)
                             }
                         ) {
-                            HealthScreen(healthVM)
+                            VerticalSwipeNavigate(
+                                mode = mode,
+                                navController = navController,
+                                upRoute = "tide",       // ↑ tide
+                                downRoute = "location"  // ↓ location
+                            ) {
+                                HealthScreen(
+                                    viewModel = healthVM,
+                                    showArrows = false,
+                                    autoCycle = true,
+                                    intervalMillis = 3000L
+                                )
+                            }
                         }
                     }
+
                     composable("fishingDetail") {
                         SwipeDismissContainer(
                             onDismiss = {
@@ -345,17 +389,20 @@ private fun AutoAdvancePage(
     nextRoute: String,
     intervalMillis: Long = 3000L,
     beforeNavigate: (() -> Unit)? = null,
+    downSwipeNextRoute: String? = null,   // ↓로 이동할 곳
+    upSwipeNextRoute: String? = null,     // ↑로 이동할 곳  ⬅️ 추가
     content: @Composable () -> Unit
 ) {
     var paused by remember { mutableStateOf(false) }
-    var dragAccum by remember { mutableStateOf(0f) }
+    var downAccum by remember { mutableStateOf(0f) }
+    var upAccum by remember { mutableStateOf(0f) }
+    var toast by remember { mutableStateOf<String?>(null) }
     val density = LocalDensity.current
     val threshold = with(density) { 72.dp.toPx() }
 
-    // 모드 변경 시 자동 순환 초기화
+    LaunchedEffect(toast) { if (toast != null) { delay(800); toast = null } }
     LaunchedEffect(mode) { if (mode != AppMode.FISHING) paused = false }
 
-    // 타이머
     LaunchedEffect(mode, nextRoute, paused) {
         if (mode == AppMode.FISHING && !paused) {
             while (isActive && !paused) {
@@ -370,46 +417,64 @@ private fun AutoAdvancePage(
         }
     }
 
-    // 콘텐츠 + 제스처 캐처
     Box(Modifier.fillMaxSize()) {
         content()
+
         if (mode == AppMode.FISHING) {
-            // 탭 → 일시정지/재개 + 아래로 드래그 → location
             Box(
                 Modifier
                     .fillMaxSize()
-                    // AutoAdvancePage(...) 내부 제스처 영역
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = {
-                                paused = !paused   // ← 한 번 더 탭하면 다시 재생(토글)
-                            }
-                        )
+                        detectTapGestures {
+                            val next = !paused
+                            paused = next
+                            toast = if (next) "⏸" else "▶"
+                        }
                     }
-
-                    .pointerInput(Unit) {
+                    .pointerInput(upSwipeNextRoute to downSwipeNextRoute) {
                         detectVerticalDragGestures(
                             onVerticalDrag = { _, dy ->
-                                if (dy > 0f) { // 아래로만 축적
-                                    dragAccum += dy
-                                    if (dragAccum >= threshold) {
-                                        dragAccum = 0f
-                                        paused = true
-                                        navController.navigate("location") {
-                                            launchSingleTop = true
-                                            popUpTo("home") { inclusive = false }
+                                when {
+                                    dy > 0f && downSwipeNextRoute != null -> { // ↓
+                                        downAccum += dy
+                                        if (downAccum >= threshold) {
+                                            downAccum = 0f; upAccum = 0f
+                                            paused = true
+                                            navController.navigate(downSwipeNextRoute) {
+                                                launchSingleTop = true
+                                                popUpTo("home") { inclusive = false }
+                                            }
+                                        }
+                                    }
+                                    dy < 0f && upSwipeNextRoute != null -> {   // ↑
+                                        upAccum += -dy
+                                        if (upAccum >= threshold) {
+                                            downAccum = 0f; upAccum = 0f
+                                            paused = true
+                                            navController.navigate(upSwipeNextRoute) {
+                                                launchSingleTop = true
+                                                popUpTo("home") { inclusive = false }
+                                            }
                                         }
                                     }
                                 }
                             },
-                            onDragEnd = { dragAccum = 0f },
-                            onDragCancel = { dragAccum = 0f }
+                            onDragEnd = { downAccum = 0f; upAccum = 0f },
+                            onDragCancel = { downAccum = 0f; upAccum = 0f }
                         )
                     }
             )
+
+            AnimatedVisibility(visible = toast != null, enter = fadeIn(), exit = fadeOut()) {
+                Text(text = toast ?: "", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+            }
         }
     }
 }
+
+
+
+
 
 /** 스와이프 백/하드웨어 백 통합 처리 (프로젝트 버전에 맞춰 SwipeToDismissValue 사용) */
 @Composable
@@ -433,5 +498,56 @@ private fun SwipeDismissContainer(
 private fun MissingTidePlaceholder() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("조석 데이터가 없습니다\n휴대폰 연결을 확인하세요")
+    }
+}
+@Composable
+private fun VerticalSwipeNavigate(
+    mode: AppMode,
+    navController: NavController,
+    upRoute: String? = null,           // 위로 스와이프 시 이동
+    downRoute: String? = null,         // 아래로 스와이프 시 이동
+    thresholdDp: Dp = 56.dp,
+    content: @Composable () -> Unit
+) {
+    val density = LocalDensity.current
+    val threshold = with(density) { thresholdDp.toPx() }
+    var accumUp by remember { mutableStateOf(0f) }
+    var accumDown by remember { mutableStateOf(0f) }
+
+    Box(Modifier.fillMaxSize()) {
+        content()
+        if (mode == AppMode.FISHING) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(upRoute, downRoute) {
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { _, dy ->
+                                if (dy < 0f && upRoute != null) {       // ↑
+                                    accumUp += -dy
+                                    if (accumUp >= threshold) {
+                                        accumUp = 0f; accumDown = 0f
+                                        navController.navigate(upRoute) {
+                                            launchSingleTop = true
+                                            popUpTo("home") { inclusive = false }
+                                        }
+                                    }
+                                } else if (dy > 0f && downRoute != null) { // ↓
+                                    accumDown += dy
+                                    if (accumDown >= threshold) {
+                                        accumDown = 0f; accumUp = 0f
+                                        navController.navigate(downRoute) {
+                                            launchSingleTop = true
+                                            popUpTo("home") { inclusive = false }
+                                        }
+                                    }
+                                }
+                            },
+                            onDragEnd = { accumUp = 0f; accumDown = 0f },
+                            onDragCancel = { accumUp = 0f; accumDown = 0f }
+                        )
+                    }
+            )
+        }
     }
 }
