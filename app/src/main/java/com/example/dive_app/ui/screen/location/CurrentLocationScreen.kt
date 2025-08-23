@@ -169,7 +169,7 @@ fun CurrentLocationScreen(
                     fishingMarkers.forEach { it.map = null }
                     fishingMarkers.clear()
 
-                    if (mode == ViewMode.FISHING && hasPoints) {
+                    if (hasPoints) {
                         val addMarker: (FishingPoint) -> Unit = { fp ->
                             // 추천어종 계산
                             val now = LocalDateTime.now()
@@ -177,8 +177,8 @@ fun CurrentLocationScreen(
                             val month = now.monthValue
                             val best = FishingAnalyzer.recommendFish(
                                 target = fp.target,
-                                temp   = weather.obsWt?.toString()?.toDoubleOrNull() ?: 19.0,   // 수온 fallback
-                                current = 2.4,  // 조류(데이터 없으면 임시값)
+                                temp   = weather.obsWt?.toString()?.toDoubleOrNull() ?: 19.0,
+                                current = 2.4,
                                 hour = hour,
                                 mul = tide.tideList.firstOrNull()?.pMul
                                     ?.toString()
@@ -197,20 +197,21 @@ fun CurrentLocationScreen(
                                 height = 64
                                 anchor = PointF(0.5f, 1f)
                                 zIndex = 1
-
-                                // 💡 여기서 캡션 표시
                                 captionText = best ?: ""
                                 captionColor = android.graphics.Color.BLACK
                                 captionTextSize = 12f
-
                                 setOnClickListener(Overlay.OnClickListener {
                                     onMarkerClick(fp); true
                                 })
-                                map = naverMapRef
+                                map = nMap   // ✅ 여기서는 naverMapRef 말고 nMap을 직접 사용
                             }
                         }
 
-                        if (inSingle) currentFP?.let(addMarker) else nearby.forEach(addMarker)
+                        if (mode == ViewMode.FISHING && inSingle) {
+                            currentFP?.let(addMarker)
+                        } else {
+                            nearby.forEach(addMarker)   // ✅ CURRENT 모드에서도 전체 마커 표시
+                        }
                     }
                 }
             }
