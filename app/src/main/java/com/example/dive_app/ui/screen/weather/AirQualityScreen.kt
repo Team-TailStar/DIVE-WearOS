@@ -1,4 +1,5 @@
 package com.example.dive_app.ui.screen
+
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -15,10 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -27,36 +25,22 @@ import com.example.dive_app.domain.viewmodel.AirQualityViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.layout.layout
-import androidx.compose.foundation.layout.Row
 
 @Composable
 private fun ValueLine(valueText: String, unit: String) {
     val base = TextStyle(
         color = Color.White,
         fontSize = 14.sp,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
         lineHeight = 18.sp,
     )
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.height(20.dp) // ← 고정 높이
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(20.dp)) {
         Text(valueText, style = base)
         Spacer(Modifier.width(4.dp))
         if (unit == "µg/m³") {
             Text("µg/m", style = base)
-            Text(
-                "3",
-                style = base.copy(fontSize = 10.sp),
-                modifier = Modifier.offset(y = (-2).dp)
-            )
+            Text("3", style = base.copy(fontSize = 10.sp), modifier = Modifier.offset(y = (-2).dp))
         } else {
             Text(unit, style = base)
         }
@@ -66,7 +50,8 @@ private fun ValueLine(valueText: String, unit: String) {
 @Composable
 fun AirQualityScreen(
     navController: NavController,
-    airQualityViewModel: AirQualityViewModel
+    airQualityViewModel: AirQualityViewModel,
+    showDetailArrows: Boolean = true   // ✅ 추가: 낚시모드에서 화살표 숨김 제어
 ) {
     val context = LocalContext.current
     val uiState by airQualityViewModel.uiState
@@ -74,48 +59,46 @@ fun AirQualityScreen(
 
     LaunchedEffect(Unit) { (context as MainActivity).requestAirQuality() }
 
-    // 원형 화면 안전폭 + 전체 컴팩트 스케일
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
         contentAlignment = Alignment.TopCenter
     ) {
-        // AirQualityScreen의 맨 바깥 Box 안에 추가
-
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "이전",
-            tint = Color.White.copy(alpha = 0.9f),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(40.dp)
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("weather") {
-                        launchSingleTop = true
-                        popUpTo("airQuality") { inclusive = false }
+        // ◀/▶ 화살표는 플래그로 노출 제어
+        if (showDetailArrows) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "이전",
+                tint = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .clickable {
+                        navController.navigate("weather") {
+                            launchSingleTop = true
+                            popUpTo("air_quality") { inclusive = false } // ✅ 라우트명 통일
+                        }
                     }
-                }
-        )
-
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "다음",
-            tint = Color.White.copy(alpha = 0.9f),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(40.dp)
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("sea_weather") {
-                        launchSingleTop = true
-                        popUpTo("airQuality") { inclusive = false }
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "다음",
+                tint = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .clickable {
+                        navController.navigate("sea_weather") {
+                            launchSingleTop = true
+                            popUpTo("air_quality") { inclusive = false } // ✅ 라우트명 통일
+                        }
                     }
-                }
-        )
+            )
+        }
 
-        // ⬇ 상단 콘텐츠 (날짜 + 3행만)
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.70f)
@@ -127,7 +110,7 @@ fun AirQualityScreen(
                 text = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.M.d")),
                 color = Color.White,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 11.dp)
             )
 
@@ -148,27 +131,15 @@ fun AirQualityScreen(
                 grade = uiState.o3Grade, isSelected = selectedType == "O3",
                 onClick = { selectedType = "O3" }
             )
-
         }
 
         val (valueText, unit, title) = when (selectedType) {
-            "PM2.5" -> if (uiState.pm25Grade == 0) {
-                Triple("정보 없음", "", "초미세먼지")
-            } else {
-                Triple(uiState.pm25Value.toString(), "µg/m³", "초미세먼지")
-            }
-
-            "PM10" -> if (uiState.pm10Grade == 0) {
-                Triple("정보 없음", "", "미세먼지")
-            } else {
-                Triple(uiState.pm10Value.toString(), "µg/m³", "미세먼지")
-            }
-
-            else -> if (uiState.o3Grade == 0) {
-                Triple("정보 없음", "", "오존")
-            } else {
-                Triple(uiState.o3Value.toString(), "ppm", "오존")
-            }
+            "PM2.5" -> if (uiState.pm25Grade == 0) Triple("정보 없음", "", "초미세먼지")
+            else Triple(uiState.pm25Value.toString(), "µg/m³", "초미세먼지")
+            "PM10"  -> if (uiState.pm10Grade == 0) Triple("정보 없음", "", "미세먼지")
+            else Triple(uiState.pm10Value.toString(), "µg/m³", "미세먼지")
+            else    -> if (uiState.o3Grade == 0) Triple("정보 없음", "", "오존")
+            else Triple(uiState.o3Value.toString(), "ppm", "오존")
         }
 
         Box(
@@ -180,6 +151,7 @@ fun AirQualityScreen(
         }
     }
 }
+
 @Composable
 private fun MetricRow(
     leftTitle: String,
@@ -189,18 +161,11 @@ private fun MetricRow(
     onClick: () -> Unit
 ) {
     val (label, color) = gradeToStatus(grade)
-
-    // 공통 크기(6개 박스 동일 높이)
     val itemHeight = 26.dp
-    val leftWidth  = 66.dp   // 왼쪽 더 짧게
-    val rightWidth = 95.dp  // 오른쪽도 소폭 축소
+    val leftWidth  = 66.dp
+    val rightWidth = 95.dp
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 왼쪽 버튼: 짧고 둥근(알약), 텍스트 중앙정렬
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .width(leftWidth)
@@ -212,29 +177,12 @@ private fun MetricRow(
                 .clickable { onClick() },
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = leftTitle,
-                    color = Color.White,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-                Text(
-                    text = leftSub,           // PM2.5 / PM10 / O₃
-                    color = Color(0xFFBEBEBE),
-                    fontSize = 7.sp,
-                    maxLines = 1
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(leftTitle, color = Color.White, fontSize = 9.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, maxLines = 1)
+                Text(leftSub, color = Color(0xFFBEBEBE), fontSize = 7.sp, maxLines = 1)
             }
         }
-
-        // 좌우 박스 사이 간격 (작게)
         Spacer(Modifier.width(6.dp))
-
         Box(
             modifier = Modifier
                 .width(rightWidth)
@@ -242,37 +190,18 @@ private fun MetricRow(
                 .background(color, RoundedCornerShape(15.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = label,             // 매우 좋음 / 보통 / …
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
+            Text(label, color = Color.White, fontSize = 11.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, maxLines = 1)
         }
     }
 }
 
 @Composable
-private fun BottomInfoPill(
-    title: String,
-    valueText: String,
-    unit: String
-) {
+private fun BottomInfoPill(title: String, valueText: String, unit: String) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val w = maxWidth
         val h = w / 2
-        val shape = RoundedCornerShape(
-            topStart = 50.dp, topEnd = 50.dp,
-            bottomStart = h, bottomEnd = h
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        val shape = RoundedCornerShape(topStart = 50.dp, topEnd = 50.dp, bottomStart = h, bottomEnd = h)
+        Box(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
                     .width(w * 0.52f)
@@ -288,17 +217,11 @@ private fun BottomInfoPill(
                             .background(Color(0xFF343434), RoundedCornerShape(50.dp))
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Text(title, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
+                        Text(title, color = Color.White, fontSize = 8.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(1.dp))
-
                     if (valueText == "정보 없음") {
-                        Text(
-                            text = "정보 없음",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        Text("정보 없음", color = Color.White, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
                     } else {
                         ValueLine(valueText, unit)
                     }
@@ -308,7 +231,6 @@ private fun BottomInfoPill(
     }
 }
 
-// 등급 매핑(변경 없음)
 private fun gradeToStatus(grade: Int): Pair<String, Color> = when (grade) {
     1 -> "매우 좋음" to Color(0xFF28A745)
     2 -> "보통"     to Color(0xFFFFBF00)

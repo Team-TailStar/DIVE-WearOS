@@ -1,4 +1,5 @@
 package com.example.dive_app.ui.screen
+
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.Image
@@ -31,7 +32,8 @@ import java.text.DecimalFormat
 @Composable
 fun SeaWeatherScreen(
     navController: androidx.navigation.NavController,
-    weatherViewModel: WeatherViewModel
+    weatherViewModel: WeatherViewModel,
+    showDetailArrows: Boolean = true    // ✅ 낚시모드에서 화살표 숨김 제어
 ) {
     val context = LocalContext.current
     val uiState by weatherViewModel.uiState
@@ -40,7 +42,6 @@ fun SeaWeatherScreen(
     val waterTempText = formatTempC(uiState.obsWt)
     val waveHeightText = formatWaveM(uiState.waveHt)
     val waveDirText = translateDir(uiState.waveDir)
-
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val base = min(maxWidth, maxHeight)
@@ -56,37 +57,41 @@ fun SeaWeatherScreen(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "이전",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(40.dp)
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("air_quality") {
-                        launchSingleTop = true
-                        popUpTo("seaWeather") { inclusive = false }
-                    }
-                }
-        )
 
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "다음",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(40.dp)
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("weather") {
-                        launchSingleTop = true
-                        popUpTo("seaWeather") { inclusive = false }
+        // ◀/▶ 아이콘은 플래그로 노출 제어
+        if (showDetailArrows) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "이전",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .clickable {
+                        navController.navigate("air_quality") {
+                            launchSingleTop = true
+                            popUpTo("sea_weather") { inclusive = false } // ✅ 라우트명 통일
+                        }
                     }
-                }
-        )
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "다음",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .clickable {
+                        navController.navigate("weather") {
+                            launchSingleTop = true
+                            popUpTo("sea_weather") { inclusive = false } // ✅ 라우트명 통일
+                        }
+                    }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,7 +135,7 @@ fun SeaWeatherScreen(
 
             Spacer(Modifier.height(1.dp))
 
-            // ── 파향: 가운데
+            // ── 파향
             Text(
                 text = waveDirText,
                 fontSize = dirSize,
@@ -138,17 +143,16 @@ fun SeaWeatherScreen(
                 color = Color(0xFF101010)
             )
         }
-        //출처 표기(사진)
+
+        // 출처 표기(사진)
         Text(
             text = "배경 이미지: derich, Freepik",
             fontSize = 5.sp,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)   // 살짝 위로 띄움
+                .padding(bottom = 12.dp)
         )
-
-
     }
 }
 
@@ -192,26 +196,24 @@ private fun baseToSp(base: Dp, ratio: Float): TextUnit {
     val spValue = px / (density.density * density.fontScale)
     return spValue.sp
 }
-// 영어 방향 → 한글 변환
+
 // 영어 방향 → 한글 변환 (중간점 포함)
-private fun translateDir(dir: String?): String {
-    return when (dir?.uppercase()) {
-        "N"   -> "북"
-        "NNE" -> "북북동"
-        "NE"  -> "북동"
-        "ENE" -> "동북동"
-        "E"   -> "동"
-        "ESE" -> "동남동"
-        "SE"  -> "남동"
-        "SSE" -> "남남동"
-        "S"   -> "남"
-        "SSW" -> "남남서"
-        "SW"  -> "남서"
-        "WSW" -> "서남서"
-        "W"   -> "서"
-        "WNW" -> "서북서"
-        "NW"  -> "북서"
-        "NNW" -> "북북서"
-        else  -> dir ?: "-"   // 알 수 없는 값은 그대로
-    }
+private fun translateDir(dir: String?): String = when (dir?.uppercase()) {
+    "N"   -> "북"
+    "NNE" -> "북북동"
+    "NE"  -> "북동"
+    "ENE" -> "동북동"
+    "E"   -> "동"
+    "ESE" -> "동남동"
+    "SE"  -> "남동"
+    "SSE" -> "남남동"
+    "S"   -> "남"
+    "SSW" -> "남남서"
+    "SW"  -> "남서"
+    "WSW" -> "서남서"
+    "W"   -> "서"
+    "WNW" -> "서북서"
+    "NW"  -> "북서"
+    "NNW" -> "북북서"
+    else  -> dir ?: "-"
 }

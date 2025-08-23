@@ -1,4 +1,6 @@
 package com.example.dive_app
+import androidx.compose.ui.Alignment
+import androidx.wear.compose.material.Text
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -50,6 +52,7 @@ fun MainApp(
         val navController = rememberSwipeDismissableNavController()
         val context = LocalContext.current as ComponentActivity
         val mode by appModeVM.mode.collectAsState()
+        val showArrows = mode != AppMode.FISHING
 
         // 응급 이벤트 감지 → emergency 화면 이동
         LaunchedEffect(healthVM, navController) {
@@ -81,13 +84,11 @@ fun MainApp(
                             )
                         }
                     }
-
                     // 1) 홈
                     composable("home") {
                         SwipeDismissContainer(
-                            onDismiss = {
-                                if (mode == AppMode.FISHING) dismissToMode(navController)
-                                else context.finish()
+                            onDismiss = {            // ← 여기만 변경
+                                dismissToMode(navController)
                             }
                         ) {
                             // 낚시 모드면 홈을 스킵하고 tide로 보냄
@@ -104,6 +105,7 @@ fun MainApp(
                             }
                         }
                     }
+
 
                     // tide -> tide/times
                     composable("tide") {
@@ -142,6 +144,7 @@ fun MainApp(
                         ) {
                             val tide =
                                 navController.previousBackStackEntry?.savedStateHandle?.get<TideInfoData>("selectedTide")
+
                             if (tide != null) {
                                 if (mode == AppMode.FISHING) {
                                     AutoAdvancePage(
@@ -153,14 +156,26 @@ fun MainApp(
                                                 ?.savedStateHandle?.set("selectedTide", tide)
                                         }
                                     ) {
-                                        TideDetailTimesPage(tide, navController)
+                                        TideDetailTimesPage(tide, navController, showDetailArrows = false)
                                     }
                                 } else {
-                                    TideDetailTimesPage(tide, navController)
+                                    TideDetailTimesPage(tide, navController, showDetailArrows = showArrows)
+                                }
+                            } else {
+                                // ★ 데이터 없을 때: 안내 + 낚시모드는 다음 화면으로 자동 이동
+                                if (mode == AppMode.FISHING) {
+                                    AutoAdvancePage(
+                                        mode = mode,
+                                        navController = navController,
+                                        nextRoute = "air_quality"
+                                    ) { MissingTidePlaceholder() }
+                                } else {
+                                    MissingTidePlaceholder()
                                 }
                             }
                         }
                     }
+
 
                     // tide/sunmoon -> air_quality
                     composable("tide/sunmoon") {
@@ -171,6 +186,7 @@ fun MainApp(
                         ) {
                             val tide =
                                 navController.previousBackStackEntry?.savedStateHandle?.get<TideInfoData>("selectedTide")
+
                             if (tide != null) {
                                 if (mode == AppMode.FISHING) {
                                     AutoAdvancePage(
@@ -178,10 +194,21 @@ fun MainApp(
                                         navController = navController,
                                         nextRoute = "air_quality"
                                     ) {
-                                        TideDetailSunMoonPage(tide, navController)
+                                        TideDetailSunMoonPage(tide, navController, showDetailArrows = false)
                                     }
                                 } else {
-                                    TideDetailSunMoonPage(tide, navController)
+                                    TideDetailSunMoonPage(tide, navController, showDetailArrows = showArrows)
+                                }
+                            } else {
+                                // ★ 데이터 없을 때도 같은 처리
+                                if (mode == AppMode.FISHING) {
+                                    AutoAdvancePage(
+                                        mode = mode,
+                                        navController = navController,
+                                        nextRoute = "air_quality"
+                                    ) { MissingTidePlaceholder() }
+                                } else {
+                                    MissingTidePlaceholder()
                                 }
                             }
                         }
@@ -200,10 +227,10 @@ fun MainApp(
                                     navController = navController,
                                     nextRoute = "sea_weather"
                                 ) {
-                                    AirQualityScreen(navController, airQualityVM)
+                                    AirQualityScreen(navController, airQualityVM, showDetailArrows = false)
                                 }
                             } else {
-                                AirQualityScreen(navController, airQualityVM)
+                                AirQualityScreen(navController, airQualityVM, showDetailArrows = showArrows)
                             }
                         }
                     }
@@ -219,10 +246,10 @@ fun MainApp(
                                     navController = navController,
                                     nextRoute = "weather"
                                 ) {
-                                    SeaWeatherScreen(navController, weatherVM)
+                                    SeaWeatherScreen(navController, weatherVM, showDetailArrows = false)
                                 }
                             } else {
-                                SeaWeatherScreen(navController, weatherVM)
+                                SeaWeatherScreen(navController, weatherVM, showDetailArrows = showArrows)
                             }
                         }
                     }
@@ -238,10 +265,10 @@ fun MainApp(
                                     navController = navController,
                                     nextRoute = "tide" // loop
                                 ) {
-                                    WeatherScreen(navController, weatherVM)
+                                    WeatherScreen(navController, weatherVM, showDetailArrows = false)
                                 }
                             } else {
-                                WeatherScreen(navController, weatherVM)
+                                WeatherScreen(navController, weatherVM, showDetailArrows = showArrows)
                             }
                         }
                     }
@@ -351,9 +378,15 @@ private fun AutoAdvancePage(
             Box(
                 Modifier
                     .fillMaxSize()
+                    // AutoAdvancePage(...) 내부 제스처 영역
                     .pointerInput(Unit) {
-                        detectTapGestures(onTap = { paused = !paused })
+                        detectTapGestures(
+                            onTap = {
+                                paused = !paused   // ← 한 번 더 탭하면 다시 재생(토글)
+                            }
+                        )
                     }
+
                     .pointerInput(Unit) {
                         detectVerticalDragGestures(
                             onVerticalDrag = { _, dy ->
@@ -395,4 +428,10 @@ private fun SwipeDismissContainer(
     BackHandler { onDismiss() }
 
     SwipeToDismissBox(state = state) { content() }
+}
+@Composable
+private fun MissingTidePlaceholder() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("조석 데이터가 없습니다\n휴대폰 연결을 확인하세요")
+    }
 }

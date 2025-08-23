@@ -1,4 +1,5 @@
 package com.example.dive_app.ui.screen.tide
+
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -37,13 +38,11 @@ private val Red    = Color(0xFFFF6A5F)   // ▲
 private val Yellow = Color(0xFFFFC400)
 private val Gray   = Color(0xFFBDBDBD)
 
-
-// "02:00 (642) ▲+469"  또는  "▲ 02:00 642 +469" 같은 변형도 허용
 private data class TideRowUi(
     val time: String,       // "HH:mm"
-    val height: String,     // "642" (괄호 없이 숫자만)
+    val height: String,     // "642"
     val isUp: Boolean,      // ▲ = true, ▼ = false
-    val flowSignNum: String // "+469" / "-431" (부호+숫자) 없으면 ""
+    val flowSignNum: String // "+469" / "-431" (없으면 "")
 )
 
 private fun parseLine(rawIn: String): TideRowUi? {
@@ -51,7 +50,6 @@ private fun parseLine(rawIn: String): TideRowUi? {
     if (raw.isBlank()) return null
 
     val time = Regex("(\\d{1,2}:\\d{2})").find(raw)?.groupValues?.get(1) ?: return null
-    // (642) 또는 642 둘 다 허용
     val height = Regex("\\((\\d+)\\)").find(raw)?.groupValues?.get(1)
         ?: Regex("\\b(\\d{2,4})\\b").findAll(raw).map { it.value }
             .firstOrNull { it.length in 2..4 } ?: "--"
@@ -68,7 +66,6 @@ private fun parseLine(rawIn: String): TideRowUi? {
     )
 }
 
-
 private fun formatDate(pThisDate: String): String {
     // "2025-8-21-목-6-28" -> "2025.08.21(목)"
     val parts = pThisDate.split("-")
@@ -79,30 +76,25 @@ private fun formatDate(pThisDate: String): String {
     return "$y.$m.$d($dow)"
 }
 
-private fun formatMul(raw: String) = raw.replace(" ", "") // "4 물" -> "4물"
+private fun formatMul(raw: String) = raw.replace(" ", "")
 
 /* ---------- UI ---------- */
 @Composable
 fun TideDetailTimesPage(
     tide: TideInfoData,
-    navController: NavController
+    navController: NavController,
+    showDetailArrows: Boolean = true      // ✅ 추가: 낚시모드에서 화살표 숨김 제어
 ) {
     val listState = rememberLazyListState()
     val rows = remember(tide) {
-        // 1순위 pTime1~4, 전부 비어있으면 jowi1~4 사용
         val primary = listOf(tide.pTime1, tide.pTime2, tide.pTime3, tide.pTime4)
             .filter { it.isNotBlank() }
-
         val source = if (primary.isNotEmpty()) primary
         else listOf(tide.jowi1, tide.jowi2, tide.jowi3, tide.jowi4)
 
-        source.filter { it.isNotBlank() }
-            .mapNotNull(::parseLine)
+        source.filter { it.isNotBlank() }.mapNotNull(::parseLine)
     }
 
-//    LaunchedEffect(rows) {
-//        android.util.Log.d("TideTimes", "row count=${rows.size}, rows=$rows")
-//    }
     val density = LocalDensity.current
     val triggerPx = with(density) { 56.dp.toPx() } // 맨 위에서 위로 당김 임계치
     var dragAccum by remember { mutableStateOf(0f) }
@@ -142,61 +134,63 @@ fun TideDetailTimesPage(
             .nestedScroll(nestedScrollConnection)
             .padding(vertical = 10.dp)
     ) {
-        // 🔽 0.86f → 0.78f 로 축소 (양옆 여백 ↑)
         val contentWidth = maxWidth * 0.68f
 
-        // ◀ 왼쪽 버튼
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "이전",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(40.dp)
-                .padding(8.dp)
-                .alpha(0.5f)
-                .zIndex(10f)
-                .offset(x = (-8).dp)
-                .clickable {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedTide", tide)
+        // ◀/▶ 화살표는 플래그로 노출 제어
+        if (showDetailArrows) {
+            // ◀ 왼쪽 버튼 (sunmoon으로)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "이전",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .alpha(0.5f)
+                    .zIndex(10f)
+                    .offset(x = (-8).dp)
+                    .clickable {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("selectedTide", tide)
 
-                    navController.navigate("tide/sunmoon") {
-                        launchSingleTop = true
-                        popUpTo("tide") { inclusive = false }
+                        navController.navigate("tide/sunmoon") {
+                            launchSingleTop = true
+                            popUpTo("tide") { inclusive = false }
+                        }
                     }
-                }
-        )
+            )
 
-        // ▶ 오른쪽 버튼
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "다음",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(40.dp)
-                .padding(8.dp)
-                .alpha(0.5f)
-                .zIndex(10f)
-                .offset(x = (8).dp)
-                .clickable {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedTide", tide)
+            // ▶ 오른쪽 버튼 (tide 메인으로)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "다음",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(40.dp)
+                    .padding(8.dp)
+                    .alpha(0.5f)
+                    .zIndex(10f)
+                    .offset(x = (8).dp)
+                    .clickable {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("selectedTide", tide)
 
-                    navController.navigate("tide") {
-                        launchSingleTop = true
-                        popUpTo("tide") { inclusive = false }
+                        navController.navigate("tide") {
+                            launchSingleTop = true
+                            popUpTo("tide") { inclusive = false }
+                        }
                     }
-                }
-        )
+            )
+        }
 
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),         // 항목 간격 조금 줄이기
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
                 top = 20.dp,
@@ -219,13 +213,13 @@ fun TideDetailTimesPage(
                             imageVector = Icons.Filled.DarkMode,
                             contentDescription = null,
                             tint = Yellow,
-                            modifier = Modifier.size(14.dp)              // 16 → 14
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = formatMul(tide.pMul),
                             color = Yellow,
-                            fontSize = 14.sp,                            // 16 → 14
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
@@ -245,8 +239,8 @@ fun TideDetailTimesPage(
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
-
 }
+
 @Composable
 private fun TideTimeRow(
     time: String,
@@ -274,15 +268,14 @@ private fun TideTimeRow(
             Text(
                 text = "($height)",
                 color = Gray,
-                fontSize = 13.sp,                   // 15 → 13
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = arrow, color = arrowColor, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold) // 18 → 16
+            Text(text = arrow, color = arrowColor, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
             Spacer(Modifier.width(4.dp))
-            Text(text = flow,  color = arrowColor, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold) // 18 → 16
+            Text(text = flow,  color = arrowColor, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
-

@@ -1,4 +1,5 @@
 package com.example.dive_app.ui.screen.tide
+
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,7 +28,8 @@ import androidx.compose.foundation.clickable
 @Composable
 fun TideDetailSunMoonPage(
     tide: TideInfoData,
-    navController: NavController
+    navController: NavController,
+    showDetailArrows: Boolean = true    // ← 추가
 ) {
     val (sunrise, sunset) = remember(tide.pSun) {
         val p = tide.pSun.split("/").map { it.trim() }
@@ -58,57 +60,59 @@ fun TideDetailSunMoonPage(
         }
     }
 
-    Box(    // 🔹 Column을 Box로 감싸줌
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
             .nestedScroll(nested)
     ) {
-        // ◀ 이전 (Times 페이지로)
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "이전",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(32.dp)
-                .padding(4.dp)
-                .alpha(0.5f)
-                .offset(x = (-6).dp)
-                .clickable {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedTide", tide)
-                    navController.navigate("tide") {
-                        launchSingleTop = true
-                        popUpTo("tide") { inclusive = false }
+        // ◀ / ▶ 화살표는 플래그로 노출 제어
+        if (showDetailArrows) {
+            // ◀ 이전 (TideWatch로)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "이전",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(32.dp)
+                    .padding(4.dp)
+                    .alpha(0.5f)
+                    .offset(x = (-6).dp)
+                    .clickable {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("selectedTide", tide)
+                        navController.navigate("tide") {
+                            launchSingleTop = true
+                            popUpTo("tide") { inclusive = false }
+                        }
                     }
-                }
-        )
-
-        // ▶ 다음 (다시 TideWatch 메인으로 가고 싶으면 여기 수정)
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "다음",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(32.dp)
-                .padding(4.dp)
-                .alpha(0.5f)
-                .offset(x = (6).dp)
-                .clickable {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedTide", tide)
-                    navController.navigate("tide/times") {
-                        launchSingleTop = true
-                        popUpTo("tide") { inclusive = false }
+            )
+            // ▶ 다음 (Times 페이지)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "다음",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(32.dp)
+                    .padding(4.dp)
+                    .alpha(0.5f)
+                    .offset(x = (6).dp)
+                    .clickable {
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("selectedTide", tide)
+                        navController.navigate("tide/times") {
+                            launchSingleTop = true
+                            popUpTo("tide") { inclusive = false }
+                        }
                     }
-                }
-        )
+            )
+        }
 
-        // 기존 컨텐츠 (가운데 Column)
+        // 본문
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -140,16 +144,17 @@ private fun SunMoonCard(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth(0.70f)   // 🔹 폭 줄임 (0.85 → 0.78 정도)
+            .fillMaxWidth(0.70f)
             .clip(RoundedCornerShape(18.dp))
             .background(Color(0xFF2C2C2C))
-            .padding(horizontal = 12.dp, vertical = 8.dp) // 🔹 내부 여백 줄임
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         SunMoonRow(label1, time1, accent)
-        Spacer(modifier = Modifier.height(4.dp)) // 🔹 행 사이 간격 줄임
+        Spacer(modifier = Modifier.height(4.dp))
         SunMoonRow(label2, time2, accent)
     }
 }
+
 @Composable
 private fun SunMoonRow(
     label: String,
@@ -157,8 +162,7 @@ private fun SunMoonRow(
     accent: Color
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth(0.86f),
+        modifier = Modifier.fillMaxWidth(0.86f),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -167,7 +171,7 @@ private fun SunMoonRow(
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = accent,
-            modifier = Modifier.padding(start = 11.dp)   // ← 글자 오른쪽 이동
+            modifier = Modifier.padding(start = 11.dp)
         )
         Text(
             text = time,
@@ -177,5 +181,3 @@ private fun SunMoonRow(
         )
     }
 }
-
-
