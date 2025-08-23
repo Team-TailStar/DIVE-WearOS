@@ -1,5 +1,6 @@
 package com.example.dive_app.ui.screen
-
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,7 +56,37 @@ fun SeaWeatherScreen(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "이전",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(40.dp)
+                .padding(8.dp)
+                .clickable {
+                    navController.navigate("air_quality") {
+                        launchSingleTop = true
+                        popUpTo("seaWeather") { inclusive = false }
+                    }
+                }
+        )
 
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "다음",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(40.dp)
+                .padding(8.dp)
+                .clickable {
+                    navController.navigate("weather") {
+                        launchSingleTop = true
+                        popUpTo("seaWeather") { inclusive = false }
+                    }
+                }
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()

@@ -18,13 +18,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.dive_app.domain.model.TideInfoData
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.clickable
 
 @Composable
 fun TideDetailSunMoonPage(
     tide: TideInfoData,
     navController: NavController
 ) {
-    // 🔸 pSun / pMoon "HH:mm/HH:mm" 파싱
     val (sunrise, sunset) = remember(tide.pSun) {
         val p = tide.pSun.split("/").map { it.trim() }
         (p.getOrNull(0) ?: "-") to (p.getOrNull(1) ?: "-")
@@ -33,7 +37,6 @@ fun TideDetailSunMoonPage(
         val p = tide.pMoon.split("/").map { it.trim() }
         (p.getOrNull(0) ?: "-") to (p.getOrNull(1) ?: "-")
     }
-
 
     var dragDown by remember { mutableStateOf(0f) }
     val trigger = with(LocalDensity.current) { 56.dp.toPx() }
@@ -55,28 +58,78 @@ fun TideDetailSunMoonPage(
         }
     }
 
-    Column(
+    Box(    // 🔹 Column을 Box로 감싸줌
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
             .nestedScroll(nested)
-            .padding(vertical = 20.dp),   // 위아래 패딩도 살짝 줄임
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically), // 🔹 카드 사이 간격 줄임
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        SunMoonCard(
-            label1 = "일출", time1 = sunrise,
-            label2 = "일몰", time2 = sunset,
-            accent = Color(0xFFFFB300)
+        // ◀ 이전 (Times 페이지로)
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            contentDescription = "이전",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(32.dp)
+                .padding(4.dp)
+                .alpha(0.5f)
+                .offset(x = (-6).dp)
+                .clickable {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedTide", tide)
+                    navController.navigate("tide") {
+                        launchSingleTop = true
+                        popUpTo("tide") { inclusive = false }
+                    }
+                }
         )
-        SunMoonCard(
-            label1 = "월출", time1 = moonrise,
-            label2 = "월몰", time2 = moonset,
-            accent = Color(0xFF90CAF9)
-        )
-    }
 
+        // ▶ 다음 (다시 TideWatch 메인으로 가고 싶으면 여기 수정)
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "다음",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(32.dp)
+                .padding(4.dp)
+                .alpha(0.5f)
+                .offset(x = (6).dp)
+                .clickable {
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("selectedTide", tide)
+                    navController.navigate("tide/times") {
+                        launchSingleTop = true
+                        popUpTo("tide") { inclusive = false }
+                    }
+                }
+        )
+
+        // 기존 컨텐츠 (가운데 Column)
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SunMoonCard(
+                label1 = "일출", time1 = sunrise,
+                label2 = "일몰", time2 = sunset,
+                accent = Color(0xFFFFB300)
+            )
+            SunMoonCard(
+                label1 = "월출", time1 = moonrise,
+                label2 = "월몰", time2 = moonset,
+                accent = Color(0xFF90CAF9)
+            )
+        }
+    }
 }
+
 @Composable
 private fun SunMoonCard(
     label1: String,

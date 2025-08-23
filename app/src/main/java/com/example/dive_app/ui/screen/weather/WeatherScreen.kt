@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Explore
@@ -49,7 +50,7 @@ fun WeatherScreen(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color(0xFFFAE198).copy(alpha = 1f),
-                        Color(0xFFFFC107).copy(alpha = 0.7f)
+                        Color(0xFFFFC821).copy(alpha = 0.7f)
                     )
                 )
             ))
@@ -67,7 +68,7 @@ fun WeatherScreen(
             Icon(
                 imageVector = Icons.Filled.WbSunny,
                 contentDescription = "날씨 아이콘",
-                tint = Color(0xFFFFC107),
+                tint = Color(0xFFDAA500),
                 modifier = Modifier
                     .size(60.dp)
                     .padding(top = 9.dp, bottom = 2.dp)
@@ -115,30 +116,57 @@ fun WeatherScreen(
             }
         }
 
-        // 왼쪽 중앙 아이콘 (뒤로가기)
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-            contentDescription = "뒤로가기",
-            tint = Color(0xFFFF9800),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(40.dp)
-                .padding(8.dp)
-        )
+                // ...중략 (WeatherScreen 내부)
 
-        // 오른쪽 중앙 아이콘 (메뉴)
-        Icon(
-            imageVector = Icons.Filled.Apps,
-            contentDescription = "메뉴",
-            tint = Color(0xFFFF9800),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(40.dp)
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("weatherMenu") // 메뉴 화면으로 이동
-                }
-        )
+
+// 왼쪽 중앙 아이콘 (← 이전 화면: SeaWeather)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = "이전",
+                    tint = Color(0xBCFFFFFF),
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(40.dp)
+                        .padding(8.dp)
+                        .clickable {
+                            navController.navigate("sea_weather") {
+                                launchSingleTop = true
+                                popUpTo("weather") { inclusive = false }
+                            }
+                        }
+                )
+
+                // 오른쪽 중앙 아이콘 (→ 다음 화면: AirQuality)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "다음",
+                    tint = Color(0xBCFFFFFF),
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(40.dp)
+                        .padding(8.dp)
+                        .clickable {
+                            navController.navigate("air_quality") {
+                                launchSingleTop = true
+                                popUpTo("weather") { inclusive = false }
+                            }
+                        }
+                )
+
+
+//                // 오른쪽 중앙 아이콘 (메뉴)
+//        Icon(
+//            imageVector = Icons.Filled.Apps,
+//            contentDescription = "메뉴",
+//            tint = Color(0xFFFF9800),
+//            modifier = Modifier
+//                .align(Alignment.CenterEnd)
+//                .size(40.dp)
+//                .padding(8.dp)
+//                .clickable {
+//                    navController.navigate("weatherMenu") // 메뉴 화면으로 이동
+//                }
+//        )
     }
 }
 

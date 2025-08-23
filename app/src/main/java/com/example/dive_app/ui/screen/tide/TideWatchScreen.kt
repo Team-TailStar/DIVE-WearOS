@@ -3,6 +3,7 @@ import androidx.compose.material.icons.filled.WbSunny   // 해 아이콘
 import androidx.compose.material.icons.filled.DarkMode // 달 아이콘
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.alpha
 
 // ── Compose / Wear / Foundation
 import androidx.compose.foundation.Canvas
@@ -44,6 +45,10 @@ import kotlin.math.sin
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.platform.LocalContext
 import com.example.dive_app.MainActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import kotlinx.coroutines.launch
 
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.text.AnnotatedString
@@ -203,6 +208,22 @@ fun TideWatchScreen(
     var showLegend by remember { mutableStateOf(false) }
     var currentIndex by remember { mutableStateOf(0) }
     val today = tideState.tideList.getOrNull(currentIndex)
+    val scope = rememberCoroutineScope()
+    var showNav by remember { mutableStateOf(false) }
+
+    // 2초 동안 보여주고 숨기는 헬퍼
+    fun flashNav() {
+        showNav = true
+        scope.launch {
+            delay(2000)
+            showNav = false
+        }
+    }
+
+// 진입 시 2초 노출
+    LaunchedEffect(Unit) {
+        flashNav()
+    }
 
     LaunchedEffect(today) {
         android.util.Log.d("TideWatch", "callouts=${today?.toCalloutItems()?.map { it.text }}")
@@ -225,23 +246,6 @@ fun TideWatchScreen(
     val navigateThresholdPx = with(density) { 48.dp.toPx() } // 약 48dp
     var dragAccum by remember { mutableStateOf(0f) }
 
-    val dragModifier = Modifier.pointerInput(today) {
-        detectVerticalDragGestures(
-            onDragStart = { dragAccum = 0f },
-            onVerticalDrag = { _, dy -> dragAccum += dy }, // 아래로 +, 위로 -
-            onDragEnd = {
-                // 위로 스와이프(음수 누적)일 때 상세 "times" 페이지로 이동
-                if (dragAccum <= -navigateThresholdPx && today != null) {
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("selectedTide", today)
-                    navController.navigate("tide/times") { launchSingleTop = true }
-                }
-                dragAccum = 0f
-            },
-            onDragCancel = { dragAccum = 0f }
-        )
-    }
     SwipeToDismissBox(onDismissed = { navController.popBackStack() }) {
         Scaffold(
             vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
@@ -250,10 +254,9 @@ fun TideWatchScreen(
                 Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .then(dragModifier) // ← 이 dragModifier는 위에서 방금 만든 '누적' 버전
             ) {
                 val density = LocalDensity.current
-
+                val locationLabel = today?.pName?.replace("<br>", "") ?: "위치정보없음"
                 val minSidePx = with(density) { if (maxWidth < maxHeight) maxWidth.toPx() else maxHeight.toPx() }
                 val dialDp = with(density) { (minSidePx * 0.54f).toDp() }
                 val ringRadiusDp = dialDp / 2
@@ -262,61 +265,79 @@ fun TideWatchScreen(
                 // --- 레인(겹침 방지) 계산 ---
                 Box(Modifier.fillMaxSize()) {
 
-//                    Icon(
-//                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-//                        contentDescription = "next day",
-//                        tint = Color.White,
-//                        modifier = Modifier
-//                            .align(Alignment.CenterEnd)
-//                            .padding(end = 8.dp)
-//                            .size(18.dp)
-//                            .clickable {
-//                                if (currentIndex < tideState.tideList.lastIndex) {
-//                                    currentIndex++
-//                                    tideState.tideList.getOrNull(currentIndex)?.let { next ->
-//                                        currentDate = parsePThisDate(next.pThisDate) ?: currentDate
-//                                    }
-//                                }
-//                            }
-//                    )
-//
-//                    Icon(
-//                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-//                        contentDescription = "prev day",
-//                        tint = Color.White,
-//                        modifier = Modifier
-//                            .align(Alignment.CenterStart)
-//                            .padding(start = 8.dp)
-//                            .size(18.dp)
-//                            .clickable {
-//                                if (currentIndex > 0) {
-//                                    currentIndex--
-//                                    tideState.tideList.getOrNull(currentIndex)?.let { prev ->
-//                                        currentDate = parsePThisDate(prev.pThisDate) ?: currentDate
-//                                    }
-//                                }
-//                            }
-//                    )
+                    // 아이콘 보이는 동안만 클릭 가능하게 AnimatedVisibility로 감싸기
+                    AnimatedVisibility(
+                        visible = showNav,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        // 아이콘 두 개를 같은 레이어에서 배치
+                        Box(Modifier.fillMaxSize()) {
+                            // ◀ 이전
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = "이전",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .size(40.dp)
+                                    .padding(8.dp)
+                                    .zIndex(2f)
+                                    .alpha(0.5f)
+                                    .offset(x = (-8.5).dp)   //
+                                    .clickable {
+                                        val selected = today ?: return@clickable   // 오늘 데이터 없으면 리턴
+                                        navController.currentBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.set("selectedTide", selected)
 
+                                        navController.navigate("tide/times") {
+                                            launchSingleTop = true
+                                            popUpTo("tide") { inclusive = false }
+                                        }
+                                    }
+                            )
+                            // ▶ 다음
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = "다음",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .size(40.dp)
+                                    .padding(8.dp)
+                                    .zIndex(2f)
+                                    .alpha(0.5f)
+                                    .offset(x = (8.5).dp)
+                                    .clickable {
+                                        val selected = today ?: return@clickable
+                                        navController.currentBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.set("selectedTide", selected)
 
-//                    Icon(
-//                        imageVector = Icons.Default.ArrowDownward,
-//                        contentDescription = "detail page",
-//                        tint = Color.White,
-//                        modifier = Modifier
-//                            .align(Alignment.BottomCenter)
-//                            .padding(bottom = 16.dp)
-//                            .size(22.dp)
-//                            .clickable {
-//                                today?.let {
-//                                    navController.currentBackStackEntry
-//                                        ?.savedStateHandle
-//                                        ?.set("selectedTide", it)
-//                                    navController.navigate("tideDetail")
-//                                }
-//                            }
-//                    )
+                                        navController.navigate("tide/sunmoon") {
+                                            launchSingleTop = true
+                                            popUpTo("tide") { inclusive = false }
+                                        }
+                                    }
+                            )
+                        }
+                    }
 
+                    // 아이콘이 숨겨져 있을 때만 동작하는 탭 캐처:
+                    // 아무 데나 탭하면 2초 동안 아이콘 다시 보이게.
+                    if (!showNav) {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) {
+                                    flashNav()
+                                }
+                        )
+                    }
                     TideDial(
                         diameter = dialDp,
                         centerTime = centerTime,
@@ -340,7 +361,8 @@ fun TideWatchScreen(
                                 }
                             }
                         },
-                        onInfoClick = { showLegend = true }
+                        onInfoClick = { showLegend = true },
+                        locationLabel = locationLabel
                     )
 
 
@@ -379,13 +401,7 @@ fun TideWatchScreen(
                     )
 
 
-//                    // 맨 위 중앙 느낌표
-//                    InfoCircle(
-//                        onClick = { showLegend = true },
-//                        modifier = Modifier
-//                            .align(Alignment.TopCenter)
-//                            .padding(top = 8.dp)
-//                    )
+
 
                     // 오버레이 (설명창)
                     if (showLegend) {
@@ -408,7 +424,8 @@ private fun TideDial(
     modifier: Modifier = Modifier,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
-    onInfoClick: () -> Unit
+    onInfoClick: () -> Unit,
+    locationLabel: String
 ) {
     val ringW = 12f
     val tickW = 2f   // ✅ 기본 눈금 굵기 복구
@@ -513,18 +530,25 @@ private fun TideDial(
                 style = MaterialTheme.typography.title2,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(2.dp))
-            Box(
-                modifier = Modifier
-                    .size(12.dp)                              // 아주 작게
-                    .background(Color(0xFF2A2A2A), RoundedCornerShape(50))
-                    .clickable { onInfoClick() },             // 눌렀을 때 기존 오버레이 표시
-                contentAlignment = Alignment.Center
-            ) {
-                Text("!", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            }
-        }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = locationLabel,
+                color = Color(0xFFE53935),
+                style = MaterialTheme.typography.caption2
+                    .copy(fontSize = 6.sp, fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                softWrap = false
+            )
 
+
+
+        }
+        InfoCircle(
+            onClick = onInfoClick,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .offset(y = 40.dp)   // 다이얼 밖으로
+        )
     }
 }
 
@@ -757,7 +781,7 @@ private fun InfoCircle(
 ) {
     Box(
         modifier = modifier
-            .size(24.dp)
+            .size(14.dp)
             .background(Color(0xFF2A2A2A), shape = RoundedCornerShape(50))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -765,7 +789,7 @@ private fun InfoCircle(
         Text(
             text = "!",
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
     }

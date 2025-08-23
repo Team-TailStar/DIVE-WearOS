@@ -1,4 +1,11 @@
 package com.example.dive_app.ui.screen.location
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 
 import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
@@ -160,6 +167,8 @@ fun CurrentLocationScreen(
                                     icon = OverlayImage.fromResource(
                                         com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
                                     )
+                                    width = 48
+                                    height = 64
                                     anchor = PointF(0.5f, 1f)
                                     zIndex = 1
                                     setOnClickListener(Overlay.OnClickListener {
@@ -176,6 +185,8 @@ fun CurrentLocationScreen(
                                     icon = OverlayImage.fromResource(
                                         com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
                                     )
+                                    width = 48
+                                    height = 64
                                     anchor = PointF(0.5f, 1f)
                                     zIndex = 1
                                     setOnClickListener(Overlay.OnClickListener {
@@ -255,48 +266,54 @@ fun CurrentLocationScreen(
             }
         }
 
-        // 좌/우/가운데 탭 영역 (상/하 100dp 가드)
-        if (mode == ViewMode.FISHING && hasPoints) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .zIndex(0f)
-                    .pointerInput(hasPoints, inSingle) {
-                        detectTapGestures { offset ->
-                            val w = size.width
-                            val h = size.height
-                            val topGuard = 100.dp.toPx()
-                            val bottomGuard = 100.dp.toPx()
-                            if (offset.y < topGuard || offset.y > h - bottomGuard) return@detectTapGestures
-
-                            when {
-                                // 오른쪽 탭 → 하나씩 보기 진입/다음
-                                offset.x > w * 0.75f -> {
-                                    idx = if (!inSingle) 0 else (idx + 1) % nearby.size
-                                    showInfoBox = false
-                                }
-                                // 왼쪽 탭 → 하나씩 보기 상태에서만 이전
-                                offset.x < w * 0.25f -> {
-                                    if (inSingle) {
-                                        idx = (idx - 1 + nearby.size) % nearby.size
-                                        showInfoBox = false
-                                    }
-                                }
-                                // 가운데 탭 → 하나씩 보기 종료(전체 마커 복귀)
-                                else -> {
-                                    if (inSingle) {
-                                        idx = -1
-//                                        naverMapRef?.moveCamera(
-//                                            CameraUpdate.scrollTo(LatLng(latitude, longitude))
-//                                               .animate(CameraAnimation.Easing)
-//                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-            )
-        }
+//        // ▶ 좌/우 화살표 네비게이션 (낚시포인트 모드에서만 표시)
+//        if (mode == ViewMode.FISHING && hasPoints) {
+//            // 왼쪽 화살표
+//            Box(
+//                modifier = Modifier
+//                    .align(Alignment.CenterStart)
+//                    .padding(start = 8.dp)
+//                    .size(36.dp)
+//                    .clip(CircleShape)
+////                    .background(Color(0x66000000))
+//                    .then(
+//                        if (inSingle) Modifier.clickable {
+//                            idx = (idx - 1 + nearby.size) % nearby.size
+//                            showInfoBox = false
+//                        } else Modifier
+//                    )
+//                    .zIndex(3f),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+//                    contentDescription = "이전",
+//                    tint = if (inSingle) Color.White else Color.White.copy(alpha = 0.4f)
+//                )
+//            }
+//
+//            // 오른쪽 화살표
+//            Box(
+//                modifier = Modifier
+//                    .align(Alignment.CenterEnd)
+//                    .padding(end = 8.dp)
+//                    .size(36.dp)
+//                    .clip(CircleShape)
+////                    .background(Color(0x66000000))
+//                    .clickable {
+//                        idx = if (!inSingle) 0 else (idx + 1) % nearby.size
+//                        showInfoBox = false
+//                    }
+//                    .zIndex(3f),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+//                    contentDescription = "다음",
+//                    tint = Color.White
+//                )
+//            }
+//        }
 
         // 인덱스 바뀌면 선택 포인트로 카메라 이동 (하나씩 보기일 때만)
         LaunchedEffect(idx, mode) {
@@ -340,26 +357,73 @@ fun CurrentLocationScreen(
                     ) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
+                            // 위쪽: 포인트명
+                            AutoResizeText(
                                 text = currentFP?.point_nm ?: "-",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                maxFontSize = 13.sp,
+                                minFontSize = 12.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = currentFP?.point_dt ?: "",
-                                color = Color(0xFF58CCFF),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(Modifier.height(2.dp))
+
+                            // 중앙: 거리 + 좌우 화살표
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // 왼쪽 화살표
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "이전",
+                                    tint = Color.White.copy(alpha = if (inSingle) 0.3f else 0f),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable(enabled = inSingle) {
+                                            idx = (idx - 1 + nearby.size) % nearby.size
+                                            showInfoBox = false
+                                        }
+                                )
+
+                                // 거리
+                                Text(
+                                    text = currentFP?.point_dt ?: "",
+                                    color = Color(0xFF58CCFF),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Clip,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                                )
+
+                                // 오른쪽 화살표
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "다음",
+                                    tint = Color.White.copy(alpha = if (inSingle) 0.3f else 0f),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            idx = if (!inSingle) 0 else (idx + 1) % nearby.size
+                                            showInfoBox = false
+                                        }
+                                )
+                            }
+
+                            // 아래쪽: 인덱스
                             Text(
                                 text = "${idx + 1} / ${nearby.size}",
                                 color = Color(0xFFBDBDBD),
-                                fontSize = 11.sp
+                                fontSize = 8.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Clip,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -398,7 +462,7 @@ fun CurrentLocationScreen(
                     ) {
                         Text(
                             text = region1,
-                            fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
+                            fontSize =16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
                         )
                         if (region2.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
@@ -409,7 +473,7 @@ fun CurrentLocationScreen(
             }
         }
 
-        // ✅ CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
+        // CURRENT에서만: 지도 영역 더블탭 → 현재 위치로 리센터 (칩/하단 영역 보호)
         if (mode == ViewMode.CURRENT) {
             val topGuard = 100.dp      // 상단 UI 보호(칩)
             val bottomGuard = 120.dp   // 하단 그라데이션/패널 보호
@@ -451,6 +515,45 @@ fun CurrentLocationScreen(
         }
     }
 }
+
+@Composable
+private fun AutoResizeText(
+    text: String,
+    maxFontSize: TextUnit =13.sp,
+    minFontSize: TextUnit = 3.sp,
+    color: Color = Color.White,
+    fontWeight: FontWeight = FontWeight.ExtraBold,
+    modifier: Modifier = Modifier
+) {
+    var fontSize by remember(text) { mutableStateOf<TextUnit>(maxFontSize) }
+    var ready by remember(text) { mutableStateOf(false) }
+
+    Text(
+        text = text,
+        color = color,
+        fontWeight = fontWeight,
+        fontSize = fontSize,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,       // ✅ … 대신 잘라내고 폰트 줄이기 트리거
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth(),
+        onTextLayout = { result ->
+            if (!ready && result.didOverflowWidth) {
+                val next = (fontSize.value - 1).sp
+                if (next >= minFontSize) {
+                    fontSize = next
+                } else {
+                    ready = true
+                }
+            } else {
+                ready = true
+            }
+        }
+    )
+}
+
+
 
 private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
     val out = FloatArray(1)

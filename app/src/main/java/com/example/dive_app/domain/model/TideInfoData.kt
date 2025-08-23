@@ -10,6 +10,7 @@ data class TideInfoData(
     val pMul: String = "",
     val pSun: String = "",
     val pMoon: String = "",
+    val pSelArea : String = "",
     // API 필드
     val pTime1: String = "",
     val pTime2: String = "",
