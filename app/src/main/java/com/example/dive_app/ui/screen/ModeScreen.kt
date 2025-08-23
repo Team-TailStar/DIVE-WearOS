@@ -34,20 +34,16 @@ import androidx.compose.material.icons.filled.WaterDrop
 fun ModeScreen(
     navController: NavController,
     appModeVM: AppModeViewModel,
-    // onDismissApp: () -> Unit   // 쓰지 않으면 주석 or 삭제
 ) {
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0E0E0E)),
         contentAlignment = Alignment.Center
     ) {
-        val density = LocalDensity.current
-        val minPx = minOf(constraints.maxWidth, constraints.maxHeight)
-        val cardSideDp = with(density) { (minPx * 0.42f).toDp() }
         val cardCorner = 24.dp
         val horizontalPadding = 20.dp
-        val betweenCards = 18.dp
+        val betweenCards = 10.dp   // ← 카드 사이 거리 좁힘
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -70,11 +66,15 @@ fun ModeScreen(
                 horizontalArrangement = Arrangement.spacedBy(betweenCards),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 낚시모드 카드 (파란색)
                 ModeCard(
-                    title = "낚시모드",
-                    icon = Icons.Filled.WaterDrop,   // 물 관련 아이콘으로 대체
-                    side = cardSideDp,
-                    corner = cardCorner
+                    title = "낚시",
+                    icon = Icons.Filled.WaterDrop,
+                    corner = cardCorner,
+                    containerColor = Color(0xFF00A6FF), // 파란 계열
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
                 ) {
                     appModeVM.setMode(AppMode.FISHING)
                     navController.navigate("home") {
@@ -83,11 +83,15 @@ fun ModeScreen(
                     }
                 }
 
+                // 일반모드 카드 (회색)
                 ModeCard(
-                    title = "일반모드",
+                    title = "일반",
                     icon = Icons.Filled.Settings,
-                    side = cardSideDp,
-                    corner = cardCorner
+                    corner = cardCorner,
+                    containerColor = Color(0xFF737373), // 기존 회색
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1f)
                 ) {
                     appModeVM.setMode(AppMode.NORMAL)
                     navController.navigate("home") {
@@ -104,37 +108,44 @@ fun ModeScreen(
 private fun ModeCard(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    side: Dp,
     corner: Dp,
+    containerColor: Color,        // ← 카드 색상 외부에서 받도록 수정
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    androidx.compose.material3.Card(
-        onClick = onClick, // ← 이걸로 클릭/리플 처리 끝
+    Card(
+        onClick = onClick,
         shape = RoundedCornerShape(corner),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF3B3B3F)),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        modifier = Modifier.size(side)
+        modifier = modifier
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(14.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color(0xFFE0E0E0),
-                modifier = Modifier.size(side * 0.38f)
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = title,
-                color = Color(0xFFF5F5F7),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            val iconSize = maxWidth * 0.38f
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFFE0E0E0),
+                    modifier = Modifier.size(iconSize)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

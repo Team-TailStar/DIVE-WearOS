@@ -192,8 +192,10 @@ fun TideInfoData.toMarkers(): List<TideMarker> =
 @Composable
 fun TideWatchScreen(
     navController: NavController,
-    tideVM: TideViewModel
-) {
+    tideVM: TideViewModel,
+    showDetailArrows: Boolean = true
+)
+ {
     val tideState = tideVM.uiState.value
     val context = LocalContext.current
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
@@ -210,22 +212,26 @@ fun TideWatchScreen(
     var currentIndex by remember { mutableStateOf(0) }
     val today = tideState.tideList.getOrNull(currentIndex)
     val scope = rememberCoroutineScope()
-    var showNav by remember { mutableStateOf(false) }
+     var showNav by remember { mutableStateOf(false) }
 
-    // 2초 동안 보여주고 숨기는 헬퍼
-    fun flashNav() {
-        showNav = true
-        scope.launch {
-            delay(2000)
-            showNav = false
-        }
-    }
+     // 2초 동안 보여주고 숨기는 헬퍼
+     fun flashNav() {
+         if (!showDetailArrows) return      // ← 추가
+         showNav = true
+         scope.launch {
+             delay(2000)
+             showNav = false
+         }
+     }
 
 // 진입 시 2초 노출
-    LaunchedEffect(Unit) {
-        flashNav()
-    }
-    LaunchedEffect(zone) {
+     LaunchedEffect(Unit) {
+         if (showDetailArrows) {            // ← 추가
+             flashNav()
+         }
+     }
+
+     LaunchedEffect(zone) {
         // 시작하자마자 정확한 현재시각으로 세팅
         centerTime = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
             .atZone(zone)
@@ -283,8 +289,8 @@ fun TideWatchScreen(
                 // --- 레인(겹침 방지) 계산 ---
                 Box(Modifier.fillMaxSize()) {
 
-                    // 아이콘 보이는 동안만 클릭 가능하게 AnimatedVisibility로 감싸기
-                    AnimatedVisibility(
+                    if (showDetailArrows) {
+                        AnimatedVisibility(
                         visible = showNav,
                         enter = fadeIn(),
                         exit = fadeOut()
@@ -338,22 +344,19 @@ fun TideWatchScreen(
                                             popUpTo("tide") { inclusive = false }
                                         }
                                     }
-                            )
+                            )}
                         }
                     }
 
-                    // 아이콘이 숨겨져 있을 때만 동작하는 탭 캐처:
-                    // 아무 데나 탭하면 2초 동안 아이콘 다시 보이게.
-                    if (!showNav) {
+                    // 아이콘이 숨겨져 있을 때만 동작하는 탭 캐처
+                    if (showDetailArrows && !showNav) {    // ← 추가
                         Box(
                             Modifier
                                 .fillMaxSize()
                                 .clickable(
                                     indication = null,
                                     interactionSource = remember { MutableInteractionSource() }
-                                ) {
-                                    flashNav()
-                                }
+                                ) { flashNav() }
                         )
                     }
                     TideDial(
