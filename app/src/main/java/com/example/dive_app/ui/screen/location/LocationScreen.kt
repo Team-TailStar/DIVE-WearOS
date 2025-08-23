@@ -10,12 +10,16 @@ import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.ui.viewmodel.FishingPointViewModel
 import kotlinx.coroutines.launch
 import com.example.dive_app.domain.model.FishingPoint
+import com.example.dive_app.domain.viewmodel.TideViewModel
+import com.example.dive_app.domain.viewmodel.WeatherViewModel
 import kotlin.math.abs
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LocationScreen(
     navController: NavController,
     fishingViewModel: FishingPointViewModel,
+    weatherViewModel: WeatherViewModel,
+    tideViewModel: TideViewModel,
     locationViewModel: LocationViewModel
 ) {
     val points by fishingViewModel.points.collectAsState()
@@ -49,6 +53,8 @@ fun LocationScreen(
             CurrentLocationScreen(
                 navController = navController,
                 locationViewModel = locationViewModel,
+                weatherViewModel = weatherViewModel,
+                tideViewModel = tideViewModel,
                 points = points,
                 onMarkerClick = onMarkerClick
                 // setPagerScrollEnabled 제거

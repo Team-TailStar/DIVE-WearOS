@@ -307,7 +307,7 @@ fun MainApp(
                                 upRoute = "health",     // ↑ health
                                 downRoute = "tide"      // ↓ tide  ✅ 원하는 동작
                             ) {
-                                LocationScreen(navController, fishingVM, locationVM)
+                                LocationScreen(navController, fishingVM, weatherVM, tideVM, locationVM)
                             }
                         }
                     }

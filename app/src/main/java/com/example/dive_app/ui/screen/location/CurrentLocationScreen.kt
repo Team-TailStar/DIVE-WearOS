@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
 import android.location.Location
 import android.graphics.PointF
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -37,8 +39,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import com.example.dive_app.MainActivity
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.LocationViewModel
+import com.example.dive_app.domain.viewmodel.TideViewModel
+import com.example.dive_app.domain.viewmodel.WeatherViewModel
+import com.example.dive_app.util.FishingAnalyzer
 import com.example.dive_app.util.LocationUtil
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
@@ -48,6 +54,7 @@ import com.naver.maps.map.NaverMap
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.Overlay
 import com.naver.maps.map.overlay.OverlayImage
+import java.time.LocalDateTime
 
 private enum class ViewMode { CURRENT, FISHING }
 
@@ -56,6 +63,8 @@ private enum class ViewMode { CURRENT, FISHING }
 fun CurrentLocationScreen(
     navController : NavController,
     locationViewModel: LocationViewModel,
+    weatherViewModel : WeatherViewModel,
+    tideViewModel : TideViewModel,
     points: List<FishingPoint>,               // ← 실제 API 데이터 주입
     onMarkerClick: (FishingPoint) -> Unit,
 ) {
@@ -76,10 +85,15 @@ fun CurrentLocationScreen(
 
     // 주소 라벨
     LaunchedEffect(latitude, longitude) {
+        (context as MainActivity).requestLocation()
+        (context as MainActivity).requestTide()
+        (context as MainActivity).requestWeather()
         LocationUtil.fetchAddressFromCoords(latitude, longitude) { r1, r2 ->
             region1 = r1; region2 = r2
         }
     }
+    val weather by weatherViewModel.uiState
+    val tide by tideViewModel.uiState
 
     // NaverMap 참조 & 카메라 초기화
     var naverMapRef by remember { mutableStateOf<NaverMap?>(null) }
@@ -147,18 +161,64 @@ fun CurrentLocationScreen(
                         position = LatLng(latitude, longitude)
                     }
 
+                    fishingMarkers.forEach { it.map = null }
+                    fishingMarkers.clear()
+
+                    val now = LocalDateTime.now()
+                    val hour = now.hour
+                    val month = now.monthValue
+
+                    nearby.forEach { fp ->
+                        fishingMarkers += Marker().apply {
+                            position = LatLng(fp.lat, fp.lon)
+                            icon = OverlayImage.fromResource(
+                                com.naver.maps.map.R.drawable.navermap_default_marker_icon_green
+                            )
+                            width = 48
+                            height = 64
+                            anchor = PointF(0.5f, 1f)
+                            zIndex = 1
+                            val best = FishingAnalyzer.recommendFish(
+                                target = fp.target,
+                                temp = weather.obsWt?.toString()?.toDoubleOrNull() ?: 19.0,   // 수온
+                                current = 2.4,//tide.wavePrd?.toString()?.toDoubleOrNull() ?: 1.0,  // 조류
+                                hour = hour,        // 현재 시간
+                                mul = tide.tideList.firstOrNull()?.pMul
+                                    ?.toString()
+                                    ?.replace("[^0-9]".toRegex(), "")
+                                    ?.takeIf { it.isNotBlank() }   // ✅ 빈 문자열이면 null 처리
+                                    ?.toIntOrNull() ?: 1,
+                                month = month
+                            )
+                            // ✅ 마커 캡션에 추천어종 표시
+                            Log.d("FishingDebug", "📍 point=${fp.point_nm}, ${fp.target} lat=${fp.lat}, lon=${fp.lon}, best=$best")
+
+                            captionText = best ?: ""
+
+                            captionColor = android.graphics.Color.BLACK
+                            captionTextSize = 12f
+
+                            setOnClickListener(Overlay.OnClickListener {
+                                onMarkerClick(fp); true
+                            })
+                            map = nMap
+                        }
+                    }
+
+
                     // 최초 1회만 내 위치로 이동
                     if (!cameraInitialized) {
                         nMap.moveCamera(
                             CameraUpdate.scrollTo(LatLng(latitude, longitude))
                                 .animate(CameraAnimation.Easing)
                         )
+                        nMap.moveCamera(CameraUpdate.zoomTo(12.5))
                         cameraInitialized = true
                     }
 
                     // 마커 재생성
-                    fishingMarkers.forEach { it.map = null }
-                    fishingMarkers.clear()
+                    //fishingMarkers.forEach { it.map = null }
+                    //fishingMarkers.clear()
 
                     if (mode == ViewMode.FISHING && hasPoints) {
                         if (inSingle) {
