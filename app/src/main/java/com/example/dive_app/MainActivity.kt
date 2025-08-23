@@ -27,15 +27,7 @@ import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-
-/**
- * Wear OS 앱의 메인 Activity
- * - 심박수 센서 데이터 수집
- * - Android(폰)과의 Data Layer 통신 (요청/수신)
- * - ViewModel + Compose UI 연결
- */
 class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListener {
-    private val appModeViewModel: AppModeViewModel by viewModels()
 
     // ViewModels
     private val healthViewModel: HealthViewModel by viewModels()
@@ -44,6 +36,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     private val fishViewModel: FishingPointViewModel by viewModels()
     private val locationViewModel: LocationViewModel by viewModels()
     private val airQualityViewModel: AirQualityViewModel by viewModels()
+    private val appModeViewModel: AppModeViewModel by viewModels() // 추가
 
     private lateinit var heartRateSensorManager: HeartRateSensorManager
     private lateinit var spo2Manager: Spo2Manager
@@ -55,19 +48,14 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 권한 요청
         requestSensorPermission()
         requestAlertPermission()
-        //requestCallPhonePermission()
 
-        // 알림 채널 생성
         createNotificationChannel()
 
-        // 심박수 매니저 초기화
         heartRateSensorManager = HeartRateSensorManager(this) { bpm ->
             Log.d("WatchMsg", "❤️ Heart rate: $bpm BPM")
             healthViewModel.updateBpm(bpm)
-
             val responseJson = JSONObject().apply {
                 put("heart_rate", bpm)
                 put("timestamp", System.currentTimeMillis())
@@ -75,7 +63,6 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             replyToPhone("/response_heart_rate", responseJson.toString())
         }
 
-        // 긴급탭 감지기
         tapDetector = EmergencyTapDetector {
             healthViewModel.triggerTapEmergency()
         }
@@ -93,29 +80,24 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 tideViewModel,
                 locationViewModel,
                 airQualityViewModel,
-                appModeViewModel
+                appModeViewModel // 전달
             )
         }
 
-
-        // SpO₂ 수집
         lifecycleScope.launch {
             spo2Manager.currentSpo2.collect { spo2 ->
                 if (spo2 > 0) {
                     healthViewModel.updateSpo2(spo2)
-
                     val responseJson = JSONObject().apply {
                         put("spo2", spo2)
                         put("timestamp", System.currentTimeMillis())
                     }
                     replyToPhone("/response_spo2", responseJson.toString())
-
-                    Log.d("WatchMsg", "🩸 SpO₂ 업데이트: $spo2%")
+                    Log.d("WatchMsg", "SpO2 업데이트: $spo2%")
                 }
             }
         }
 
-        // 테스트 알림 (앱 실행 시 바로 표시)
         showWatchNotification("테스트 알림", "워치 알림이 정상 동작합니다")
     }
 
@@ -124,7 +106,6 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             tapDetector.onTapped()
         }
         return super.dispatchTouchEvent(ev)
-
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -132,39 +113,9 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         val data = String(messageEvent.data, Charsets.UTF_8)
 
         when (path) {
-            "/typhoon_alert" -> {
-                val msg = String(messageEvent.data)
-                try {
-                    val json = JSONObject(msg)
-                    val title = json.getString("title")
-                    val body = json.getString("message")
-
-                    showWatchNotification(title, body)
-                } catch (e: Exception) {
-                    showWatchNotification("알림 오류", msg)
-                }
-            }
-            "/weather_alert" -> {
-                try {
-                    val json = JSONObject(data)
-                    val title = json.getString("title")
-                    val msg = json.getString("message")
-                    showWatchNotification(title, msg)
-                } catch (e: Exception) {
-                    showWatchNotification("알림 오류", data)
-                }
-            }
-
-            "/tide_alert" -> {
-                try {
-                    val json = JSONObject(data)
-                    val title = json.getString("title")
-                    val msg = json.getString("message")
-                    showWatchNotification(title, msg)
-                } catch (e: Exception) {
-                    showWatchNotification("알림 오류", data)
-                }
-            }
+            "/typhoon_alert",
+            "/weather_alert",
+            "/tide_alert",
             "/accident_alert" -> {
                 try {
                     val json = JSONObject(data)
@@ -176,10 +127,8 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 }
             }
             "/request_heart_rate" -> {
-                Log.d("WatchMsg", "📩 폰에서 심박수 요청 받음")
-
+                Log.d("WatchMsg", "폰에서 심박수 요청 받음")
                 val latestBpm = healthViewModel.currentBpm.value
-
                 val responseJson = JSONObject().apply {
                     put("heart_rate", latestBpm)
                     put("timestamp", System.currentTimeMillis())
@@ -190,22 +139,16 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
-    /** 알림 채널 생성 */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                "경고 알림",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "각종 경고 알림 채널"
-            }
+                CHANNEL_ID, "경고 알림", NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = "각종 경고 알림 채널" }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
 
-    /** 알림 표시 */
     private fun showWatchNotification(title: String, message: String) {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_sea_friend)
@@ -219,7 +162,6 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     android.Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                // 권한이 없으면 그냥 리턴 (또는 요청 로직 추가)
                 ActivityCompat.requestPermissions(
                     this@MainActivity,
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
@@ -231,57 +173,34 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
-    /** 권한 요청들 */
     private fun requestSensorPermission() {
         if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.BODY_SENSORS
+                this, android.Manifest.permission.BODY_SENSORS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.BODY_SENSORS),
-                100
-            )
-        }
-    }
-
-    private fun requestCallPhonePermission() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.CALL_PHONE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.CALL_PHONE),
-                100
+                this, arrayOf(android.Manifest.permission.BODY_SENSORS), 100
             )
         }
     }
 
     private fun requestAlertPermission() {
         if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.POST_NOTIFICATIONS
+                this, android.Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                1001
+                this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001
             )
         }
     }
 
-    /** 폰으로 요청 메시지 보내기 */
     fun requestWeather() = replyToPhone("/request_weather", "request")
     fun requestTide() = replyToPhone("/request_tide", "request")
     fun requestPoint() = replyToPhone("/request_point", "request")
     fun requestAirQuality() = replyToPhone("/request_air_quality", "request")
     fun requestLocation() = replyToPhone("/request_location", "request")
 
-    /** 메시지 전송 공통 함수 */
     private fun replyToPhone(path: String, message: String) {
         Wearable.getNodeClient(this).connectedNodes
             .addOnSuccessListener { nodes ->
@@ -289,10 +208,10 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     Wearable.getMessageClient(this)
                         .sendMessage(node.id, path, message.toByteArray())
                         .addOnSuccessListener {
-                            Log.d("WatchMsg", "📨 폰으로 메시지 전송 성공 → $path")
+                            Log.d("WatchMsg", "메시지 전송 성공 → $path")
                         }
                         .addOnFailureListener { e ->
-                            Log.e("WatchMsg", "⚠️ 메시지 전송 실패: ${e.message}")
+                            Log.e("WatchMsg", "메시지 전송 실패: ${e.message}")
                         }
                 }
             }
@@ -312,5 +231,3 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         Wearable.getMessageClient(this).removeListener(this)
     }
 }
-
-

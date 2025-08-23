@@ -49,8 +49,8 @@ fun WeatherScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFAE198).copy(alpha = 1f),
-                        Color(0xFFFFC821).copy(alpha = 0.7f)
+                        Color(0xFFFFE9A7).copy(alpha = 1f),
+                        Color(0xFFFFD456).copy(alpha = 0.7f)
                     )
                 )
             ))

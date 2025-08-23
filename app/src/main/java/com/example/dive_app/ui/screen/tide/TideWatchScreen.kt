@@ -197,11 +197,12 @@ fun TideWatchScreen(
     val tideState = tideVM.uiState.value
     val context = LocalContext.current
     var currentDate by remember { mutableStateOf(LocalDate.now()) }
+    val zone = remember { ZoneId.of("Asia/Seoul") }
     var centerTime by remember {
         mutableStateOf(
-            ZonedDateTime.now(ZoneId.of("Asia/Seoul"))
+            java.time.Instant.ofEpochMilli(System.currentTimeMillis())
+                .atZone(zone)
                 .toLocalTime()
-                .withSecond(0)
                 .withNano(0)
         )
     }
@@ -224,16 +225,33 @@ fun TideWatchScreen(
     LaunchedEffect(Unit) {
         flashNav()
     }
+    LaunchedEffect(zone) {
+        // 시작하자마자 정확한 현재시각으로 세팅
+        centerTime = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
+            .atZone(zone)
+            .toLocalTime()
+            .withNano(0)
+
+        // 다음 "초 경계"를 계산
+        var nextTick = System.currentTimeMillis().let { it - (it % 1000L) + 1000L }
+
+        while (true) {
+            val now = System.currentTimeMillis()
+            val wait = (nextTick - now).coerceIn(0L, 1000L)
+            delay(wait)
+
+            // 초 경계 시각으로 갱신 (지터/딜레이 최소화)
+            centerTime = java.time.Instant.ofEpochMilli(nextTick)
+                .atZone(zone)
+                .toLocalTime()
+                .withNano(0)
+
+            nextTick += 1000L
+        }
+    }
 
     LaunchedEffect(today) {
         android.util.Log.d("TideWatch", "callouts=${today?.toCalloutItems()?.map { it.text }}")
-    }
-    LaunchedEffect(Unit) {
-        (context as MainActivity).requestTide()
-        while (true) {
-            centerTime = LocalTime.now()
-            delay(1000L)
-        }
     }
 
     // 변환된 데이터
