@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import androidx.navigation.NavController
 import com.example.dive_app.domain.model.FishingPoint
 import com.example.dive_app.domain.viewmodel.LocationViewModel
 import com.example.dive_app.util.LocationUtil
@@ -53,6 +54,7 @@ private enum class ViewMode { CURRENT, FISHING }
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CurrentLocationScreen(
+    navController : NavController,
     locationViewModel: LocationViewModel,
     points: List<FishingPoint>,               // ← 실제 API 데이터 주입
     onMarkerClick: (FishingPoint) -> Unit,
@@ -353,6 +355,14 @@ fun CurrentLocationScreen(
                             .shadow(14.dp, shape)
                             .clip(shape)
                             .background(Color(0xF01A1A1A))
+                            .clickable {
+                                currentFP?.let { fp ->
+                                    navController.currentBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("fishingPoint", fp)
+                                    navController.navigate("fishingDetail")
+                                }
+                            }
                             .padding(vertical = 12.dp, horizontal = 16.dp)
                     ) {
                         Column(

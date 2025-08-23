@@ -47,6 +47,7 @@ fun LocationScreen(
     ) { page ->
         if (page == 0) {
             CurrentLocationScreen(
+                navController = navController,
                 locationViewModel = locationViewModel,
                 points = points,
                 onMarkerClick = onMarkerClick
